@@ -1,0 +1,150 @@
+import './workshop.css';
+import { catalog } from '../world/catalog';
+import { exampleProject } from '../world/examples';
+import { GameSession, unsupported } from '../world/game';
+import { newLevel, validateV2 } from '../world/level';
+import { clone, defaults, DIRS } from '../world/types';
+import type { Command, Direction, EditorSettings, LevelDataV2, ObjectKind, ProjectData, Vec3 } from '../world/types';
+import { solveWater, waterAt } from '../world/water';
+import { WorldView } from '../world-view/view';
+import { fillThumbnails } from '../world-view/thumbnails';
+import { placementNormal, resolvePlacement, StackingEditor } from './editor';
+import type { Pick } from './editor';
+import { addChapter, addLevel, duplicateLevel, importProject, moveLevel, recover, removeChapter, removeLevel } from './project';
+import { ProjectStore } from './storage';
+
+const app=document.querySelector<HTMLDivElement>('#app')!;
+app.innerHTML=`<main class="app">
+  <header class="topbar"><div class="brand"><span class="brand-mark" aria-hidden="true">≈</span><div><h1>水之天堂</h1><small>庭院工坊 · 第三阶段</small></div></div>
+  <nav class="toolbar" aria-label="编辑与试玩"><span id="save-state" class="save-state" role="status">正在读取</span><button id="undo" title="撤销 Ctrl / ⌘ + Z">↶ 撤销</button><button id="redo" title="重做 Ctrl / ⌘ + Shift + Z">↷ 重做</button><button id="save">保存</button><button id="import">导入</button><button id="export">导出本关</button><button id="export-project" class="hide-small">整套导出</button><button id="play" class="primary">▷ 试玩庭院</button></nav></header>
+  <div class="workspace"><aside class="sidebar left" aria-label="章节关卡栏"><div class="side-heading"><div><span class="eyebrow">COLLECTION</span><h2>我的庭院</h2></div><button id="new-chapter" aria-label="新建章节">＋</button></div><div id="chapters" class="scroll chapter-list"></div>
+  <div class="level-actions"><button id="rename-level">重命名</button><button id="duplicate-level">复制关卡</button><button id="level-up">↑ 向上</button><button id="level-down">↓ 向下</button><button id="delete-level" class="danger">删除关卡</button><button id="resize-level">地图尺寸</button><label class="move-row">移到章节<select id="move-chapter" aria-label="移到章节"></select></label></div><div class="side-footer"><span id="level-count"></span><button id="trash" class="quiet">回收站</button></div></aside>
+  <section class="stage" aria-label="三维庭院工作区"><canvas id="world" tabindex="0" aria-label="三维编辑画布"></canvas><div class="scene-heading"><div class="scene-title"><span id="mode-label" class="eyebrow">BUILD YOUR WATER GARDEN</span><h2 id="level-title"></h2><p id="description"></p></div><nav class="camera-controls" aria-label="相机"><button id="camera-reset">重置视角</button><button data-view="top">顶视</button><button data-view="north">北面</button><button data-view="east">东面</button><button data-view="south">南面</button><button data-view="west">西面</button><button id="focus">聚焦</button></nav></div>
+  <div class="canvas-tools"><button id="toggle-left" aria-label="收起或展开关卡栏">☰ 关卡</button><button id="toggle-right" aria-label="收起或展开物件库">▦ 物件</button><label class="motion-select">动作<select id="animation-mode" aria-label="动作动画"><option value="full">完整</option><option value="simple">简化</option><option value="system">跟随系统</option></select></label><button id="pause">暂停水面</button><button id="restart" hidden>重开</button><span class="tool-status" id="tool-status"></span></div><div class="stats-chip"><div id="water-stats"></div><div id="render-stats">准备画面</div></div><div class="win-card" id="win" hidden><h2>水，找到了归途。</h2><p>唯一出口已抵达 · 庭院完成</p></div><div class="error-banner" id="render-error" role="alert" hidden></div><div class="loading" id="loading">正在唤醒庭院…</div></section>
+  <aside class="sidebar right" aria-label="物件库与属性"><div class="side-heading"><div><span class="eyebrow">BUILDING KIT</span><h2>物件与建造</h2></div><span id="direction-badge" class="muted">北 ↑</span></div><div class="scroll"><div class="tool-properties"><label class="field">放置层<input id="layer" type="number" min="0" max="31" value="0"></label><label class="field">笔刷<select id="brush"><option value="1">1 × 1</option><option value="3">3 × 3</option><option value="5">5 × 5</option></select></label><label class="check"><input id="rectangle" type="checkbox">矩形铺设</label><div class="glass-directions" id="glass-directions" aria-label="玻璃吸附方向"><button data-glass="auto">自动吸边</button><button data-glass="north">北</button><button data-glass="east">东</button><button data-glass="south">南</button><button data-glass="west">西</button></div><button id="rotate" title="快捷键 R">旋转 90°</button></div>
+  <div class="mechanism" id="mechanism"></div><div class="palette" id="palette"></div><div class="view-options"><label class="field">剖视：显示到层<input id="slice" type="number" min="0" max="32" value="32"></label><div class="checks"><label class="check"><input id="grid" type="checkbox" checked>网格</label><label class="check"><input id="depth" type="checkbox">水深</label><label class="check"><input id="outlets" type="checkbox" checked>出口边</label></div><small>剖视只隐藏上层物件，不改变水路与碰撞。</small></div><div class="inspector"><h3>位置检查</h3><p id="inspect">将鼠标移到庭院上，查看占位与水深。</p><p id="support-warning" class="muted"></p></div></div></aside></div>
+  <footer class="bottom-bar"><span id="help">左键建造 · 右键拖删 · 中键点按取样 / 拖动旋转 · 滚轮缩放</span><a href="./showcase.html">参观美术样板 ↗</a><span>R 旋转物件 · [ ] 笔刷大小 · F 聚焦</span></footer>
+  <input id="file" type="file" accept=".json,application/json" hidden><div id="notice" class="notice" role="status" aria-live="polite"></div>
+  <dialog id="name-dialog"><form id="name-form"><h2 id="dialog-title"></h2><label>名称<input id="name-input" required maxlength="120" autocomplete="off"></label><div class="dialog-actions"><button type="button" id="dialog-cancel">取消</button><button class="primary" type="submit">确定</button></div></form></dialog>
+  <dialog id="size-dialog"><form id="size-form"><h2>庭院尺寸</h2><p class="muted">范围 4–32 格；缩小前请移走范围外的物件。</p><label>宽度 X<input id="map-width" type="number" min="4" max="32" required></label><label>深度 Z<input id="map-depth" type="number" min="4" max="32" required></label><div class="dialog-actions"><button type="button" id="size-cancel">取消</button><button class="primary">应用</button></div></form></dialog>
+  <dialog id="trash-dialog"><h2>可恢复的庭院</h2><div id="trash-list" class="trash-list"></div><div class="dialog-actions"><button id="trash-close">关闭</button></div></dialog>
+</main>`;
+const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
+const escape=(text:string)=>text.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
+const nameOf=(tool:EditorSettings['tool'])=>tool==='spawn'?'主角出生点':tool==='source'?'天空水源':catalog[tool].name;
+const directionName:Record<Direction,string>={north:'北 ↑',east:'东 →',south:'南 ↓',west:'西 ←'};
+let noticeTimer=0;
+function notice(text:string){$('notice').textContent=text;clearTimeout(noticeTimer);noticeTimer=window.setTimeout(()=>$('notice').textContent='',6500);}
+let project:ProjectData=exampleProject(),editor:StackingEditor,game:GameSession|null=null,view:WorldView|null=null,hover:Pick|null=null;
+const store=new ProjectStore(),sessions=new Map<string,StackingEditor>();let saving=0,saveTimer=0,pending:Command|null=null,renderPending=false;
+const moveKeys:Record<string,Direction>={w:'north',arrowup:'north',d:'east',arrowright:'east',s:'south',arrowdown:'south',a:'west',arrowleft:'west'};
+const held=new Set<string>();let heldLast:string|null=null,queuedKey:string|null=null,blockedHeld:string|null=null;
+function clearMovement(){held.clear();heldLast=null;queuedKey=null;pending=null;blockedHeld=null;}
+function activeHeld(){return heldLast&&held.has(heldLast)?heldLast:[...held].at(-1)??null;}
+let timings={solveMs:0,sceneMs:0};
+let water=solveWater(project.levels[project.active]);
+function capture(){if(!editor||!project.chapters.some(c=>c.levels.includes(editor.level.id)))return;project.levels[editor.level.id]=clone(editor.level);project.settings[editor.level.id]=clone(editor.settings);}
+async function save(){capture();const token=++saving;$('save-state').textContent='保存中…';try{await store.save(project);if(token===saving)$('save-state').textContent='已自动保存';}catch(error){$('save-state').textContent='仅保存在本页';notice(`保存失败：${error instanceof Error?error.message:'浏览器存储不可用'}。内容仍在，可立即导出。`);}}
+function scheduleSave(){capture();$('save-state').textContent='待保存';clearTimeout(saveTimer);saveTimer=window.setTimeout(()=>void save(),350);}
+function draw(editorTransition=false){renderPending=false;if(!editor)return;const start=performance.now(),l=game?.level??editor.level,objects=game?.state.objects??editor.level.objects;water=game?.water??solveWater(l,objects);const solved=performance.now();view?.show(l,objects,water,editor.settings,game?.state,[],editorTransition);timings={solveMs:solved-start,sceneMs:performance.now()-solved};refreshStatus();}
+function requestDraw(){if(!renderPending){renderPending=true;requestAnimationFrame(()=>draw());}}
+function changed(){scheduleSave();requestDraw();}
+function selectLevel(id:string){if(!project.levels[id])return;finishStroke();capture();game=null;clearMovement();view?.finish(false);project.active=id;editor=sessions.get(id)??new StackingEditor(project.levels[id],project.settings[id]??defaults());sessions.set(id,editor);renderNavigation();syncControls();draw();scheduleSave();}
+function refreshStatus(){
+  const l=game?.level??editor.level;$('level-title').textContent=l.name;$('description').textContent=l.description??'从一块石头开始，搭起自己的空中水庭院。';$('mode-label').textContent=game?'PLAY · 寻找唯一出水点':'BUILD · 堆叠你的水庭院';
+  $('water-stats').textContent=`${game?`第 ${game.state.turn} 回合 · `:''}${water.outlets.length} 条出水边 · ${l.width} × ${l.depth}`;
+  $('tool-status').textContent=game?`视角方向：W ${directionName[view?.movementDirection('north')??'north']} · A ${directionName[view?.movementDirection('west')??'west']} · S ${directionName[view?.movementDirection('south')??'south']} · D ${directionName[view?.movementDirection('east')??'east']} · X 拉取`:`${nameOf(editor.settings.tool)} · ${editor.settings.rectangle?'矩形':`${editor.settings.brush} × ${editor.settings.brush}`} · 放置层 Y=${editor.settings.layer}`;
+  $('support-warning').textContent=game?'':unsupported(l).length?'有无支撑的可移动物件；进入试玩时统一落稳。':'';
+  $<HTMLButtonElement>('undo').disabled=game?!game.canUndo:!editor.canUndo;$<HTMLButtonElement>('redo').disabled=game?!game.canRedo:!editor.canRedo;
+  $('win').hidden=game?.state.status!=='won'||!!view?.busy;
+}
+function syncControls(){
+  app.classList.toggle('playing',!!game);$('play').textContent=game?'← 返回编辑':'▷ 试玩庭院';$('restart').hidden=!game;$('toggle-right').hidden=!!game;$('pause').textContent=view?.paused?'播放水面':'暂停水面';
+  $('help').textContent=game?'Z 撤销 · Y 重做 · R 重开 · 中键拖动观察':'左键建造 · 右键拖删 · 中键点按取样 / 拖动旋转 · 滚轮缩放';
+  for(const key of ['layer','brush','slice'] as const)$<HTMLInputElement>(key).value=String(editor.settings[key]);for(const key of ['rectangle','grid','depth','outlets'] as const)$<HTMLInputElement>(key).checked=editor.settings[key];
+  $<HTMLSelectElement>('animation-mode').value=editor.settings.animation??'full';
+  $('glass-directions').hidden=editor.settings.tool!=='glass'&&editor.settings.tool!=='open-glass';
+  for(const b of document.querySelectorAll<HTMLButtonElement>('[data-glass]'))b.setAttribute('aria-pressed',String((editor.settings.glassMode??'auto')==='auto'?b.dataset.glass==='auto':b.dataset.glass===editor.settings.direction));
+  $('direction-badge').textContent=(editor.settings.glassMode==='auto'&&['glass','open-glass'].includes(editor.settings.tool)?'自动吸边 · ':'')+directionName[editor.settings.direction];$('mechanism').textContent=editor.settings.tool==='source'?'唯一的无限水源，从天空落向这一列最上方的承接面。':editor.settings.tool==='spawn'?'设置主角的初始位置。编辑时保持原位，试玩时检查落脚点。':catalog[editor.settings.tool].description;
+  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-tool]'))button.setAttribute('aria-pressed',String(button.dataset.tool===editor.settings.tool));
+  for(const id of ['rename-level','duplicate-level','level-up','level-down','delete-level','resize-level','move-chapter','new-chapter'])$(id).toggleAttribute('disabled',!!game);
+}
+function renderNavigation(){
+  $('chapters').innerHTML=project.chapters.map(c=>`<section class="chapter"><div class="chapter-title"><button class="chapter-toggle" data-chapter="${escape(c.id)}" aria-expanded="${!c.collapsed}">${c.collapsed?'▸':'▾'} ${escape(c.name)} <small>${c.levels.length}</small></button><select class="chapter-menu" aria-label="${escape(c.name)}章节操作" data-chapter-menu="${escape(c.id)}"><option value="">⋯</option><option value="rename">重命名</option><option value="copy">复制章节</option><option value="up">上移</option><option value="down">下移</option><option value="delete">删除章节</option></select></div>${c.collapsed?'':`<div class="level-list">${c.levels.map((id,i)=>`<button class="level" data-level="${escape(id)}" aria-current="${id===project.active}"><span class="number">${String(i+1).padStart(2,'0')}</span><span>${escape(project.levels[id].name)}</span></button>`).join('')}<button class="new-level" data-new-level="${escape(c.id)}">＋ 新建关卡</button></div>`}</section>`).join('');
+  if(!project.chapters.length)$('chapters').innerHTML='<p class="empty">还没有章节。点击上方 ＋，开始搭建第一座庭院。</p>';
+  $('level-count').textContent=`${Object.keys(project.levels).length} 座庭院`;$('move-chapter').innerHTML=project.chapters.map(c=>`<option value="${escape(c.id)}" ${c.levels.includes(project.active)?'selected':''}>${escape(c.name)}</option>`).join('');
+}
+function renderPalette(){const entries:[EditorSettings['tool'],string,string,string,string][]=[...Object.entries(catalog).map(([k,v])=>[k,v.name,v.group,v.icon,v.color] as [ObjectKind,string,string,string,string]),['source','天空水源','角色与水源','≋','#65a9ba'],['spawn','主角出生点','角色与水源','♟','#8c75b3']];$('palette').innerHTML=[...new Set(entries.map(e=>e[2]))].map(group=>`<section class="palette-section"><h3>${group}</h3><div class="palette-grid">${entries.filter(e=>e[2]===group).map(([kind,name,,icon,color])=>`<button class="asset" data-tool="${kind}" aria-pressed="false" title="${name}"><span class="thumbnail" aria-hidden="true" style="--asset-color:${color}">${icon}</span><span>${name}</span></button>`).join('')}</div></section>`).join('');}
+let onName:((name:string)=>void)|null=null;
+function askName(title:string,value:string,callback:(name:string)=>void){$('dialog-title').textContent=title;$<HTMLInputElement>('name-input').value=value;onName=callback;$<HTMLDialogElement>('name-dialog').showModal();$<HTMLInputElement>('name-input').select();}
+$('name-form').addEventListener('submit',e=>{e.preventDefault();const name=$<HTMLInputElement>('name-input').value.trim();if(!name)return;$<HTMLDialogElement>('name-dialog').close();onName?.(name);onName=null;});$('dialog-cancel').onclick=()=>$<HTMLDialogElement>('name-dialog').close();
+$('new-chapter').onclick=()=>askName('新建章节','新的章节',name=>{addChapter(project,name);renderNavigation();scheduleSave();});
+$('chapters').addEventListener('click',e=>{const target=(e.target as HTMLElement).closest<HTMLButtonElement>('button');if(!target)return;
+  if(target.dataset.chapter){const c=project.chapters.find(c=>c.id===target.dataset.chapter)!;c.collapsed=!c.collapsed;renderNavigation();scheduleSave();}
+  if(target.dataset.level)selectLevel(target.dataset.level);
+  if(target.dataset.newLevel&&!game)askName('新建关卡','未命名庭院',name=>{capture();const c=project.chapters.find(c=>c.id===target.dataset.newLevel)!;const l=addLevel(project,c,newLevel(name));selectLevel(l.id);});
+});
+$('chapters').addEventListener('change',e=>{const select=e.target as HTMLSelectElement,id=select.dataset.chapterMenu;if(!id||game)return;const c=project.chapters.find(c=>c.id===id)!;const action=select.value;select.value='';
+  if(action==='rename')askName('重命名章节',c.name,name=>{c.name=name;renderNavigation();scheduleSave();});
+  if(action==='copy'){capture();const dest=addChapter(project,`${c.name} · 副本`);for(const id of c.levels){const copy=clone(project.levels[id]);copy.id=crypto.randomUUID();addLevel(project,dest,copy);}if(dest.levels.length)selectLevel(dest.levels[0]);else{renderNavigation();scheduleSave();}}
+  if(action==='up'||action==='down'){const i=project.chapters.indexOf(c),j=Math.max(0,Math.min(project.chapters.length-1,i+(action==='up'?-1:1)));project.chapters.splice(i,1);project.chapters.splice(j,0,c);renderNavigation();scheduleSave();}
+  if(action==='delete'){capture();removeChapter(project,id);afterDeletion();notice('章节已移到回收站，可以恢复。');}
+});
+function afterDeletion(){if(!project.active){const c=project.chapters[0]??addChapter(project,'我的庭院');addLevel(project,c);}selectLevel(project.active);}
+$('rename-level').onclick=()=>askName('重命名关卡',editor.level.name,name=>{editor.edit(l=>l.name=name);changed();capture();renderNavigation();});
+$('duplicate-level').onclick=()=>{capture();selectLevel(duplicateLevel(project,project.active).id);};
+$('delete-level').onclick=()=>{capture();removeLevel(project,project.active);afterDeletion();notice('关卡已移到回收站，可以恢复。');};
+for(const [id,delta]of [['level-up',-1],['level-down',1]] as const)$(id).onclick=()=>{const c=project.chapters.find(c=>c.levels.includes(project.active))!;moveLevel(project,project.active,c.id,c.levels.indexOf(project.active)+delta);renderNavigation();scheduleSave();};
+$('move-chapter').onchange=()=>{const id=$<HTMLSelectElement>('move-chapter').value;moveLevel(project,project.active,id,project.chapters.find(c=>c.id===id)!.levels.length);renderNavigation();scheduleSave();};
+$('resize-level').onclick=()=>{$<HTMLInputElement>('map-width').value=String(editor.level.width);$<HTMLInputElement>('map-depth').value=String(editor.level.depth);$<HTMLDialogElement>('size-dialog').showModal();};
+$('size-cancel').onclick=()=>$<HTMLDialogElement>('size-dialog').close();$('size-form').onsubmit=e=>{e.preventDefault();const width=Number($<HTMLInputElement>('map-width').value),depth=Number($<HTMLInputElement>('map-depth').value),candidate={...editor.level,width,depth};const errors=validateV2(candidate);if(errors.length){notice(errors.join('；'));return;}editor.edit(l=>{l.width=width;l.depth=depth;});$<HTMLDialogElement>('size-dialog').close();changed();};
+function showTrash(){$('trash-list').innerHTML=project.trash.length?project.trash.map(t=>`<div class="trash-item"><span>${escape(t.name)} <small>${t.levels.length} 关</small></span><button data-recover="${escape(t.id)}">恢复</button></div>`).join(''):'<p class="empty">回收站是空的。删除的关卡与章节会保留在这里。</p>';}
+$('trash').onclick=()=>{showTrash();$<HTMLDialogElement>('trash-dialog').showModal();};$('trash-close').onclick=()=>$<HTMLDialogElement>('trash-dialog').close();$('trash-list').onclick=e=>{const id=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-recover]')?.dataset.recover;if(id){recover(project,id);selectLevel(project.active);showTrash();notice('已恢复。');}};
+$('palette').onclick=e=>{const tool=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-tool]')?.dataset.tool as EditorSettings['tool']|undefined;if(tool){editor.settings.tool=tool;syncControls();scheduleSave();refreshStatus();}};
+for(const id of ['layer','slice','brush'] as const)$(id).addEventListener('change',()=>{const n=Number($<HTMLInputElement>(id).value);if(!Number.isInteger(n)||n<0||n>(id==='layer'?31:32)){syncControls();return;}if(id==='brush'&&![1,3,5].includes(n))return;editor.settings[id]=n as 1|3|5;changed();syncControls();});
+for(const id of ['rectangle','grid','depth','outlets'] as const)$(id).onchange=()=>{editor.settings[id]=$<HTMLInputElement>(id).checked;changed();};
+function rotate(){editor.settings.direction=DIRS[(DIRS.findIndex(d=>d.name===editor.settings.direction)+1)%4].name;if(editor.settings.tool==='glass'||editor.settings.tool==='open-glass')editor.settings.glassMode='manual';syncControls();scheduleSave();}
+$('glass-directions').onclick=e=>{const chosen=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-glass]')?.dataset.glass;if(!chosen)return;if(chosen==='auto')editor.settings.glassMode='auto';else{editor.settings.glassMode='manual';editor.settings.direction=chosen as Direction;}syncControls();scheduleSave();};
+$('animation-mode').onchange=()=>{editor.settings.animation=$<HTMLSelectElement>('animation-mode').value as EditorSettings['animation'];view?.setAnimation(editor.settings.animation??'full');scheduleSave();};
+$('rotate').onclick=rotate;$('save').onclick=()=>void save();
+function download(value:unknown,name:string){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name.replace(/[<>:"/\\|?*]/g,'_')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+$('export').onclick=()=>download(editor.level,editor.level.name);$('export-project').onclick=()=>{capture();download(project,'水之天堂-章节工程');};$('import').onclick=()=>$<HTMLInputElement>('file').click();
+$('file').onchange=async()=>{const input=$<HTMLInputElement>('file'),file=input.files?.[0];if(!file)return;try{if(file.size>20_000_000)throw new Error('文件超过 20 MB');capture();const next=importProject(project,await file.text());project=next;selectLevel(project.active);notice('导入成功，已作为新副本加入。');}catch(error){notice(`导入失败，当前草稿未改变：${(error as Error).message}`);}finally{input.value='';}};
+$('toggle-left').onclick=()=>{app.classList.toggle('left-closed');};$('toggle-right').onclick=()=>{app.classList.toggle('right-closed');};
+$('camera-reset').onclick=()=>view?.reset();for(const b of document.querySelectorAll<HTMLButtonElement>('[data-view]'))b.onclick=()=>view?.setView(b.dataset.view as 'top'|Direction);
+$('focus').onclick=()=>view?.focus(hover?.position??game?.state.player??editor.level.spawn??{x:editor.level.width/2,y:editor.settings.layer,z:editor.level.depth/2});
+$('pause').onclick=()=>{if(view)view.paused=!view.paused;syncControls();};
+function act(command:Command,heldKey?:string){if(!game)return;if(view?.busy){if(heldKey)queuedKey=heldKey;else pending=command;return;}const result=game.act(command);if(!result.accepted){if(heldKey)blockedHeld=heldKey;else notice(result.message);return;}blockedHeld=null;water=result.water;view?.show(game.level,game.state.objects,water,editor.settings,game.state,result.events);refreshStatus();}
+function moveByKey(k:string,turn=false){if(!view||!game)return;const direction=view.movementDirection(moveKeys[k]);act({type:turn?'turn':'move',direction},turn?undefined:k);}
+function togglePlay(){finishStroke();clearMovement();view?.finish(false);if(game){game=null;notice('已返回编辑，试玩中的位置没有覆盖草稿。');}else{try{game=new GameSession(editor.level);}catch(error){notice(`暂不能试玩：${(error as Error).message}`);return;}}syncControls();draw();$('world').focus();}
+$('play').onclick=togglePlay;$('restart').onclick=()=>{clearMovement();view?.finish(false);game?.restart();draw();};
+function undo(){clearMovement();finishStroke();if(game){const result=game.undo();if(result){water=result.water;view?.show(game.level,game.state.objects,water,editor.settings,game.state,result.events);refreshStatus();}}else if(editor.undo()){scheduleSave();capture();renderNavigation();draw(true);}}
+function redo(){clearMovement();if(game){const result=game.redo();if(result){water=result.water;view?.show(game.level,game.state.objects,water,editor.settings,game.state,result.events);refreshStatus();}}else if(editor.redo()){scheduleSave();capture();renderNavigation();draw(true);}}
+$('undo').onclick=undo;$('redo').onclick=redo;
+let strokeButton=-1,rectangleEnd:Vec3|null=null;
+function inspect(p:Pick|null){hover=p;if(!p){$('inspect').textContent='指向庭院，查看坐标和水深。';return;}const sample={...p.position,y:p.position.y+(p.normal.y>0&&p.id?1:0)},c=waterAt(water,sample),edges=water.outlets.filter(e=>e.x===p.position.x&&e.z===p.position.z&&e.y===(c?.y??p.position.y));$('inspect').textContent=`X ${p.position.x} · Y ${p.position.y} · Z ${p.position.z}\n${p.kind?nameOf(p.kind):'空位'} · ${c?.kind==='deep'?`深水 ${c.depth} 格`:c?.kind==='sheet'?'平流层（薄水）':'干燥'}\n${edges.length?`出水边：${edges.map(e=>directionName[e.direction]).join('、')}`:'此层没有出水边'}`;}
+function finishStroke(){if(!editor?.stroke)return;if(editor.settings.rectangle&&rectangleEnd)editor.rectangle(rectangleEnd);const changedStroke=editor.end();strokeButton=-1;rectangleEnd=null;if(changedStroke){changed();refreshStatus();}}
+const canvas=$<HTMLCanvasElement>('world');
+canvas.addEventListener('pointerdown',e=>{if(game||e.button===1||!view)return;e.preventDefault();canvas.focus();const pick=view.pick(e.clientX,e.clientY);if(!pick)return;editor.begin(e.button===2,pick);strokeButton=e.button;canvas.setPointerCapture(e.pointerId);rectangleEnd=resolvePlacement(pick,editor.settings).position;if(!editor.settings.rectangle){editor.paint(pick);requestDraw();}});
+canvas.addEventListener('pointermove',e=>{if(game||!view)return;const pick=view.pick(e.clientX,e.clientY,editor.stroke?.before);inspect(pick);view.preview(pick?editor.preview(pick):null,pick,strokeButton===2||!!(e.buttons&2));if(!editor.stroke||!pick||!(e.buttons&3))return;
+  if(editor.settings.rectangle&&editor.stroke.start){const start=resolvePlacement(editor.stroke.start,editor.settings);rectangleEnd=view.intersectPlane(e.clientX,e.clientY,start.position,placementNormal(editor.stroke.start,editor.settings));}
+  else{editor.paint(pick);requestDraw();}});
+canvas.addEventListener('pointerup',e=>{if(e.button!==1)finishStroke();});canvas.addEventListener('pointercancel',()=>finishStroke());canvas.addEventListener('lostpointercapture',()=>finishStroke());canvas.addEventListener('pointerleave',()=>{if(!editor?.stroke){view?.preview(null,null);}});
+window.addEventListener('keydown',e=>{if((e.target as HTMLElement).closest('input,select,textarea,dialog'))return;const k=e.key.toLowerCase();if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();return;}if((e.ctrlKey||e.metaKey)&&k==='s'){e.preventDefault();void save();return;}
+  if(game){if(moveKeys[k]){e.preventDefault();if(e.repeat)return;if(e.shiftKey){act({type:'turn',direction:view?.movementDirection(moveKeys[k])??moveKeys[k]});return;}held.add(k);heldLast=k;if(view?.busy)queuedKey=k;else moveByKey(k);}else if(k==='x'){e.preventDefault();if(!e.repeat)act({type:'pull'});}else if(k===' '){e.preventDefault();if(!e.repeat)act({type:'wait'});}else if(k==='z')undo();else if(k==='y')redo();else if(k==='r')$('restart').click();else if(k==='escape')togglePlay();}
+  else if(k==='r')rotate();else if(k==='f')$('focus').click();else if(k==='['||k===']'){editor.settings.brush=([1,3,5][Math.max(0,Math.min(2,[1,3,5].indexOf(editor.settings.brush)+(k===']'?1:-1)))] as 1|3|5);syncControls();changed();}else if(k==='escape'){editor.cancel();draw();}
+});
+window.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(!moveKeys[k])return;held.delete(k);if(heldLast===k)heldLast=activeHeld();if(queuedKey===k)queuedKey=null;if(blockedHeld===k)blockedHeld=null;});
+window.addEventListener('blur',clearMovement);
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearMovement();if(editor)void save();}});
+async function start(){
+  renderPalette();try{const saved=await store.load();if(saved)project=saved;try{const migrated=await store.migrateOrigin4175(saved);if(migrated){project=migrated.project;notice(`已从旧地址恢复 ${migrated.count} 关，原资料和备份已保留。`);}else if(store.migrationUnavailable)notice('4175 当前没有本工程的迁移页。如有旧关卡，请在旧页导出 JSON，再点这里的“导入”；旧页资料不会被改动。');}catch(error){notice(`旧地址资料迁移未完成，原资料仍保留：${(error as Error).message}`);}try{if(await store.migrateLegacy(project))notice('旧版草稿已迁移，原数据和备份均已保留。');}catch(error){notice(`旧草稿读取未完成，原数据仍保留：${(error as Error).message}`);}}catch(error){notice(`暂时无法读取本地存储：${(error as Error).message}。仍可建造并导出。`);}
+  try{view=new WorldView(canvas,message=>{$('render-error').textContent=message;$('render-error').hidden=false;});view.onSample=p=>{editor.sample(p);syncControls();scheduleSave();refreshStatus();notice(`已取样：${nameOf(editor.settings.tool)}`);};view.onIdle=()=>{refreshStatus();const next=pending;pending=null;if(next){act(next);return;}const key=queuedKey??activeHeld();queuedKey=null;if(key&&held.has(key)&&blockedHeld!==key)moveByKey(key);};view.controls.addEventListener('change',()=>{if(game)refreshStatus();});view.onStats=(fps,calls)=>{$('render-stats').textContent=`${fps} FPS · ${calls} 次绘制`;};}catch(error){$('render-error').textContent=`无法启动三维画面：${(error as Error).message}。关卡仍可导出。`;$('render-error').hidden=false;}
+  if(!project.levels[project.active])project.active=Object.keys(project.levels)[0];if(!project.active){const c=addChapter(project);addLevel(project,c);}selectLevel(project.active);$('loading').hidden=true;
+  if(view)try{fillThumbnails($('palette'));}catch{/* Keep the usable symbol previews if an auxiliary WebGL context is unavailable. */}
+  // Local diagnostics deliberately expose the same public controller APIs used by the UI.
+  Object.assign(window,{waterWorkshop:{get level(){return clone(editor.level);},get project(){capture();return clone(project);},get state(){return game?clone(game.state):null;},get water(){return clone(water);},get settings(){return clone(editor.settings);},get fps(){return view?.fps??0;},get timings(){return {...timings};},get camera(){return{position:view?.camera.position.toArray(),target:view?.controls.target.toArray()};},get presentation(){return view?.presentation;},directionFor:(d:Direction)=>view?.movementDirection(d),projectPoint:(p:Vec3)=>view?.project(p),pickAt:(x:number,y:number)=>view?.pick(x,y),select:selectLevel,play:togglePlay,act,undo,redo,save,importJSON:(text:string)=>{capture();project=importProject(project,text);selectLevel(project.active);},setLevel:(level:LevelDataV2)=>{const errors=validateV2(level);if(errors.length)throw new Error(errors.join('；'));capture();const c=project.chapters[0];addLevel(project,c,clone(level));selectLevel(level.id);},finish:()=>view?.finish(),view:(name:'top'|Direction|'reset')=>view?.setView(name),get busy(){return view?.busy??false;}}});
+}
+void start();
+
+

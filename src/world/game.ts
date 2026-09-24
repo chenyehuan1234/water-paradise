@@ -1,0 +1,212 @@
+import { dynamic, height, solid, top } from './catalog';
+import { blocksEdge, bodyFree, inside, supportAt } from './spatial';
+import { clone, dir, DIRS, plus, sameColumn } from './types';
+import type { ActionEvent, Command, Direction, GameState, LevelDataV2, StepResult, Vec3, WaterSolution, WorldObject } from './types';
+import { solveWater, waterAt } from './water';
+import { validateV2 } from './level';
+
+const point = (p: Vec3): Vec3 => ({ x: p.x, y: p.y, z: p.z });
+const event = (events: ActionEvent[], type: ActionEvent['type'], id: string, from: Vec3, to: Vec3, extra: Partial<ActionEvent> = {}) => events.push({ type, id, from: point(from), to: point(to), ...extra });
+export function supportingBoat(state: GameState, position: Vec3, exclude = new Set<string>()): WorldObject | undefined {
+  let p = position;
+  for (let i = 0; i < 33; i++) { const support = supportAt(state.objects, p, p.y, true, exclude);
+    if (!support || top(support) !== p.y) return; if (support.kind === 'boat') return support;
+    if (!dynamic(support)) return; exclude.add(support.id); p = support;
+  }
+}
+const riding = (state: GameState) => supportingBoat(state, state.player)?.id ?? null;
+const boatWater = (water: WaterSolution, boat: Vec3) => waterAt(water, {...boat, y: boat.y - .001}) ?? waterAt(water, boat);
+function win(state: GameState, water: WaterSolution) {
+  const e = water.outlets[0], cell = e && water.cells.find(c => c.id === e.cellId);
+  // A bridge or upstairs platform above this water layer cannot satisfy a downstairs outlet.
+  state.status = water.outlets.length === 1 && cell && sameColumn(state.player, e) && state.player.y >= cell.y && state.player.y <= cell.level && state.player.y < cell.ceiling ? 'won' : 'playing';
+  if(state.status==='won')state.facing=e.direction;
+}
+function carriedGroup(state: GameState, seeds: string[], d: { x: number; z: number }, push: boolean) {
+  const group = new Set(seeds); let changed = true;
+  while (changed) { changed = false;
+    for (const o of state.objects.filter(o => group.has(o.id))) for (const b of state.objects) {
+      if (group.has(b.id) || !dynamic(b)) continue;
+      const carried = sameColumn(o, b) && b.y === top(o);
+      const ahead = push && !(b.kind === 'boat' && !b.cargo?.length && o.kind !== 'boat') && sameColumn(plus(o, d), b) && b.y < o.y + Math.max(.01, height(o)) && b.y + Math.max(.01, height(b)) > o.y;
+      if (carried || ahead) { group.add(b.id); changed = true; }
+    }
+  }
+  return group;
+}
+/** All translations are preflighted as a single transaction, including carried actors. */
+function translate(level: LevelDataV2, state: GameState, moves: Map<string, { x: number; z: number }>, water: WaterSolution, events: ActionEvent[], type: 'push' | 'pull' | 'slide', hand = false): boolean {
+  const excluded = new Set(moves.keys()), proposals = state.objects.filter(o => moves.has(o.id)).map(o => ({ ...o, ...plus(o, moves.get(o.id)!) }));
+  let actorDelta: { x: number; z: number } | undefined;
+  const actorSupport = supportAt(state.objects, state.player, state.player.y, true);
+  if (actorSupport && top(actorSupport) === state.player.y && moves.has(actorSupport.id)) actorDelta = moves.get(actorSupport.id);
+  for (const next of proposals) {
+    const old = state.objects.find(o => o.id === next.id)!, movement = moves.get(next.id)!, direction = DIRS.find(d => d.x === movement.x && d.z === movement.z)!.name;
+    if (hand && old.kind === 'boat' && boatWater(water, old)?.kind === 'deep') return false;
+    if (blocksEdge(state.objects, old, direction, old.y, old.y + Math.max(.01, height(old))) || !bodyFree(state.objects, next, Math.max(.01, height(old)), excluded)) return false;
+    if (proposals.some(b => b.id !== next.id && sameColumn(b, next) && b.y < next.y + Math.max(.01,height(next)) && b.y + Math.max(.01,height(b)) > next.y)) return false;
+    // Opposing boats may not exchange cells through one another during a simultaneous pull.
+    if (proposals.some(b => b.id !== next.id && sameColumn(b, old) && sameColumn(state.objects.find(o => o.id === b.id)!, next) && b.y < next.y + Math.max(.01,height(next)) && b.y + Math.max(.01,height(b)) > next.y)) return false;
+    const player = actorDelta ? plus(state.player, actorDelta) : state.player;
+    if (sameColumn(player, next) && next.y < player.y + 1 && top(next) > player.y) return false;
+  }
+  if (actorDelta) {
+    const p = plus(state.player, actorDelta), direction = DIRS.find(d => d.x === actorDelta!.x && d.z === actorDelta!.z)!.name;
+    if (!inside(level, p) || !bodyFree([...state.objects.filter(o => !excluded.has(o.id)), ...proposals], p) || blocksEdge(state.objects, state.player, direction)) return false;
+    // A movable support falling into a bottomless column cannot carry the player out of the world.
+    const fixedOrUnmoved = state.objects.filter(o => !excluded.has(o.id));
+    if (!supportAt(fixedOrUnmoved, p, p.y) && !proposals.some(o => o.kind === 'boat' && sameColumn(o, p) && waterAt(water, o)?.kind === 'deep')) return false;
+  }
+  for (const next of proposals) { const old = state.objects.find(o => o.id === next.id)!; event(events, type, old.id, old, next); Object.assign(old, next); }
+  if (actorDelta) { const next = plus(state.player, actorDelta); event(events, type, 'player', state.player, next); state.player = next; }
+  return true;
+}
+function splashFor(events: ActionEvent[], id: string, from: Vec3, to: Vec3, oldWater: WaterSolution) {
+  const cell = waterAt(oldWater, to);
+  if (cell && cell.kind !== 'dry' && from.y > cell.level && to.y <= cell.level) event(events, cell.kind === 'deep' ? 'splash' : 'drip', id, from, { ...to, y: cell.level }, { deep: cell.kind === 'deep' });
+}
+function settleGravity(level: LevelDataV2, state: GameState, oldWater: WaterSolution, events: ActionEvent[], splash: boolean): boolean {
+  const moving = state.objects.filter(dynamic).sort((a, b) => a.y - b.y || a.id.localeCompare(b.id));
+  for (const o of moving) {
+    const from = point(o), floor = supportAt(state.objects, o, o.y, false, new Set([o.id]));
+    let y = floor ? top(floor) : -1;
+    if (o.kind === 'boat') { const w = boatWater(oldWater, o); if (w?.kind === 'deep') y = Math.max(y, Math.min(o.y, w.level)); }
+    if (!inside(level, o) || y < 0) { event(events, 'leave', o.id, from, { ...o, y: -4 }); state.objects = state.objects.filter(b => b.id !== o.id); continue; }
+    if (y < o.y) { o.y = y; event(events, 'fall', o.id, from, o); if (splash && o.kind !== 'boat') splashFor(events, o.id, from, o, oldWater); event(events, 'land', o.id, o, o); }
+    if ((o.kind === 'crate' || o.kind === 'wood') && floor?.kind === 'boat' && !floor.cargo?.length && o.y === top(floor)) {
+      floor.cargo ??= []; floor.cargo.push({ id: o.id, kind: o.kind }); state.objects = state.objects.filter(b => b.id !== o.id); event(events, 'load', o.id, o, floor);
+    }
+  }
+  const floor = supportAt(state.objects, state.player, state.player.y, true);
+  if (!floor || !inside(level, state.player)) return false;
+  if (top(floor) < state.player.y) { const from = point(state.player); state.player.y = top(floor); event(events, 'fall', 'player', from, state.player); if (splash) splashFor(events, 'player', from, state.player, oldWater); event(events, 'land', 'player', state.player, state.player); }
+  return bodyFree(state.objects, state.player);
+}
+function floatBoats(state: GameState, water: WaterSolution, events: ActionEvent[]) {
+  for (const boat of state.objects.filter(o => o.kind === 'boat').sort((a,b) => a.y-b.y || a.id.localeCompare(b.id))) {
+    const group = carriedGroup(state, [boat.id], {x:0,z:0}, false), members = state.objects.filter(o => group.has(o.id));
+    const passenger = supportingBoat(state, state.player)?.id === boat.id;
+    const c = boatWater(water, boat), floor = supportAt(state.objects, boat, boat.y, false, group), bottom = floor ? top(floor) : boat.y;
+    let wanted = Math.max(bottom, c?.kind === 'deep' ? c.level : bottom);
+    const outsiders = state.objects.filter(o => !group.has(o.id));
+    const tallest = Math.max(...members.map(o => top(o) - boat.y), passenger ? state.player.y + 1 - boat.y : 0);
+    // Include the entire vertical sweep, so a thin bridge cannot be skipped.
+    for (const obstacle of outsiders) if (sameColumn(boat, obstacle) && (solid(obstacle) || obstacle.kind === 'bridge') && obstacle.y >= boat.y + tallest) wanted = Math.min(wanted, obstacle.y - tallest);
+    const delta = wanted - boat.y; if (!delta) continue;
+    if (members.some(o => !bodyFree(outsiders, {...o,y:o.y+delta}, Math.max(.001,height(o)))) || passenger && !bodyFree(outsiders,{...state.player,y:state.player.y+delta})) continue;
+    for (const o of members) { const from = point(o); o.y += delta; event(events,'float',o.id,from,o); }
+    if (passenger) { const from = point(state.player); state.player.y += delta; event(events,'float','player',from,state.player); }
+  }
+  state.riding = riding(state);
+}
+export function splashDirection(x: number, z: number): Direction | null { return Math.abs(x) === Math.abs(z) ? null : Math.abs(x) > Math.abs(z) ? x > 0 ? 'east' : 'west' : z > 0 ? 'south' : 'north'; }
+function driveBoats(level: LevelDataV2, state: GameState, water: WaterSolution, events: ActionEvent[]) {
+  const impulses = new Map<string, { x: number; z: number }>();
+  for (const boat of state.objects.filter(o => o.kind === 'boat')) {
+    const c = boatWater(water, boat); if (c?.kind !== 'deep') continue;
+    const force = { x: 0, z: 0 };
+    for (const e of events.filter(e => e.type === 'splash')) if (Math.abs(boat.x - e.to.x) + Math.abs(boat.z - e.to.z) === 1 && c.level === e.to.y) { const direction=DIRS.find(d=>d.x===boat.x-e.to.x&&d.z===boat.z-e.to.z)!.name; if(blocksEdge(state.objects,e.to,direction,c.level,c.level+.01,true))continue; const strength = Math.max(1, e.from.y - e.to.y); force.x += (boat.x - e.to.x) * strength; force.z += (boat.z - e.to.z) * strength; }
+    impulses.set(boat.id, force);
+  }
+  for (const boat of state.objects.filter(o => impulses.has(o.id)).sort((a,b) => a.id.localeCompare(b.id))) {
+    const f = impulses.get(boat.id)!, direction = splashDirection(f.x, f.z); if (!direction) continue;
+    const d = dir(direction), initial = boatWater(water, boat)!;
+    for (let i = 0; i < Math.max(level.width, level.depth); i++) {
+      const next = plus(boat, d), c = waterAt(water, next);
+      if (!inside(level, next) || c?.kind !== 'deep' || c.level !== initial.level || c.y !== initial.y || !translate(level, state, new Map([...carriedGroup(state,[boat.id],d,false)].map(id=>[id,d])), water, events, 'slide')) break;
+    }
+  }
+}
+function tryWalk(level: LevelDataV2, state: GameState, direction: Direction, water: WaterSolution, events: ActionEvent[]): boolean {
+  const d = dir(direction), next = plus(state.player, d); if (!inside(level, next) || blocksEdge(state.objects, state.player, direction)) return false;
+  const blockers = state.objects.filter(o => solid(o) && sameColumn(next, o) && o.y < next.y + 1 && (top(o) > next.y || o.kind === 'boat' && o.y === next.y));
+  if (blockers.length && blockers.every(dynamic)) {
+    const before = clone(state), oldCount = events.length;
+    const group = carriedGroup(state, blockers.map(o => o.id), d, true);
+    if (!translate(level, state, new Map([...group].map(id => [id, d])), water, events, 'push', true)) { Object.assign(state, before); events.length = oldCount; }
+  }
+  const floor = supportAt(state.objects, next, state.player.y + 1, true); if (!floor) return false;
+  const y = top(floor); if (y > state.player.y && floor.kind === 'bridge') return false;
+  const dest = { ...next, y };
+  if (!bodyFree(state.objects, dest) || blocksEdge(state.objects, state.player, direction, Math.min(y, state.player.y), Math.max(y, state.player.y) + 1)) return false;
+  const from = point(state.player);
+  // Horizontal displacement happens before gravity; fall events retain their real starting height.
+  state.player = { ...dest, y: Math.max(y, from.y) };
+  event(events, y > from.y ? 'climb' : events.some(e => e.type === 'push') ? 'push' : 'walk', 'player', from, state.player);
+  return true;
+}
+function tryPull(level: LevelDataV2, state: GameState, water: WaterSolution, events: ActionEvent[]): boolean {
+  const d = dir(state.facing); let target: WorldObject | undefined;
+  let previous = point(state.player);
+  for (let distance = 1; distance <= 32; distance++) {
+    const p = plus(state.player, d, distance); if (!inside(level, p) || blocksEdge(state.objects, previous, state.facing)) break;
+    const at = state.objects.filter(o => sameColumn(o, p));
+    target = at.find(o => o.kind === 'crate' && o.y === state.player.y || o.kind === 'boat' && o.y === state.player.y && o.cargo?.[0]?.kind === 'crate');
+    if (target) break;
+    if (!bodyFree(state.objects, p)) break;
+    previous = p;
+  }
+  if (!target) return false;
+  const upperCrate = target.kind === 'crate' && !!supportingBoat(state,target,new Set([target.id]));
+  const actorBoat = upperCrate ? null : riding(state), targetBoat = target.kind === 'boat' ? target.id : null;
+  if (actorBoat && actorBoat === targetBoat) return false;
+  const reverse = { x: -d.x, z: -d.z }, moves = new Map<string, { x: number; z: number }>();
+  if (actorBoat) for (const id of carriedGroup(state,[actorBoat],d,false)) moves.set(id,d);
+  if (targetBoat) for (const id of carriedGroup(state,[targetBoat],reverse,false)) moves.set(id,reverse);
+  if (!actorBoat && !targetBoat) for (const id of carriedGroup(state, [target.id], reverse, false)) moves.set(id, reverse);
+  const from = point(state.player), targetPosition = { ...point(target), y: target.y };
+  if (!translate(level, state, moves, water, events, 'pull')) return false;
+  event(events, 'pull', 'chain', from, state.player, { target: targetPosition, targetId: target.id }); return true;
+}
+function settle(level: LevelDataV2, state: GameState, oldWater: WaterSolution, events: ActionEvent[], splash: boolean): WaterSolution | null {
+  if (!settleGravity(level, state, oldWater, events, splash)) return null;
+  let water = solveWater(level, state.objects);
+  const seen = new Set<string>(); let stable = false;
+  for (let iteration = 0; iteration < 64; iteration++) {
+    const before = JSON.stringify(state); if (seen.has(before)) return null; seen.add(before);
+    floatBoats(state, water, events);
+    if (!settleGravity(level,state,water,events,false)) return null;
+    water = solveWater(level,state.objects);
+    if (JSON.stringify(state) === before) { stable = true; break; }
+  }
+  if (!stable) return null;
+  if (splash) {
+    driveBoats(level, state, water, events);
+    // A slide can move ordinary water-blocking cargo. Re-equilibrate without new splashes.
+    const after = settle(level,state,water,events,false); if (!after) return null; water = after;
+  }
+  state.riding = riding(state); win(state, water);
+  if (state.status === 'won' && !events.some(e=>e.type==='win')) event(events, 'win', 'player', state.player, state.player, { direction: water.outlets[0].direction });
+  return water;
+}
+export function initialState(level: LevelDataV2): StepResult {
+  const errors = validateV2(level, true); if (errors.length) throw new Error(errors.join('；'));
+  const state: GameState = { player: point(level.spawn!), facing: 'south', objects: clone(level.objects), riding: null, turn: 0, status: 'playing' };
+  const events: ActionEvent[] = [], old = solveWater(level, state.objects), water = settle(level, state, old, events, false);
+  if (!water) throw new Error('主角初始化后没有合法落脚点');
+  return { accepted: true, state, water, events: [], message: '庭院已就绪' };
+}
+export function applyAction(level: LevelDataV2, previous: GameState, command: Command): StepResult {
+  const oldWater = solveWater(level, previous.objects), state = clone(previous), events: ActionEvent[] = [];
+  const fail = (message: string): StepResult => ({ accepted: false, state: previous, water: oldWater, events: [], message });
+  if (command.type === 'turn') { state.facing = command.direction; event(events, 'turn', 'player', state.player, state.player); return { accepted: true, state, water: oldWater, events, message: '已转向' }; }
+  if (state.status === 'won') return fail('已完成，可撤销或重开');
+  if (command.type === 'move') { state.facing = command.direction; if (!tryWalk(level, state, command.direction, oldWater, events)) return fail('这里无法通过，可用 Shift + 方向键原地转向'); }
+  if (command.type === 'pull' && !tryPull(level, state, oldWater, events)) return fail('没有同高、无遮挡且能拉动的箱子');
+  state.turn++;
+  const water = settle(level, state, oldWater, events, true); if (!water) return fail('整组移动会使主角失去落脚点');
+  return { accepted: true, state, water, events, message: (state as GameState).status === 'won' ? '唯一水路，找到归途' : command.type === 'wait' ? '等待一回合，水位保持稳定' : '操作完成' };
+}
+export class GameSession {
+  readonly level: LevelDataV2;
+  state: GameState; water: WaterSolution;
+  private past: {before:GameState;after:GameState;events:ActionEvent[]}[] = []; private future: typeof this.past = [];
+  constructor(level: LevelDataV2) { this.level = clone(level); const start = initialState(this.level); this.state = start.state; this.water = start.water; }
+  act(command: Command) { const result = applyAction(this.level, this.state, command); if (result.accepted) { this.past.push({before:clone(this.state),after:clone(result.state),events:clone(result.events)}); if (this.past.length > 300) this.past.shift(); this.future = []; this.state = result.state; this.water = result.water; } return result; }
+  undo(): StepResult | false { const entry = this.past.pop(); if (!entry) return false; this.future.push(entry); this.state = clone(entry.before); this.water = solveWater(this.level,this.state.objects);
+    return {accepted:true,state:this.state,water:this.water,events:entry.events.filter(e=>!['win','splash','drip','land','load'].includes(e.type)).reverse().map(e=>({...e,from:e.to,to:e.from,reversed:true})),message:'已撤销'}; }
+  redo(): StepResult | false { const entry = this.future.pop(); if (!entry) return false; this.past.push(entry); this.state = clone(entry.after); this.water = solveWater(this.level,this.state.objects); return {accepted:true,state:this.state,water:this.water,events:clone(entry.events),message:'已重做'}; }
+  restart() { const start = initialState(this.level); this.state = start.state; this.water = start.water; this.past = []; this.future = []; }
+  get canUndo() { return !!this.past.length; } get canRedo() { return !!this.future.length; }
+}
+export function unsupported(level: LevelDataV2) { return level.objects.filter(o => dynamic(o) && (!supportAt(level.objects, o, o.y, false, new Set([o.id])) || top(supportAt(level.objects, o, o.y, false, new Set([o.id]))!) !== o.y)); }

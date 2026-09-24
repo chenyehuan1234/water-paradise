@@ -1,0 +1,885 @@
+{
+  "version": 2,
+  "id": "validation-pull",
+  "name": "庭院归途 · 拉",
+  "width": 8,
+  "depth": 7,
+  "objects": [
+    {
+      "id": "stone-0-0-0",
+      "kind": "stone",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-1-0",
+      "kind": "stone",
+      "x": 0,
+      "y": 1,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-0-0",
+      "kind": "stone",
+      "x": 1,
+      "y": 0,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-1-0",
+      "kind": "stone",
+      "x": 1,
+      "y": 1,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-0-0",
+      "kind": "stone",
+      "x": 2,
+      "y": 0,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-1-0",
+      "kind": "stone",
+      "x": 2,
+      "y": 1,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-0-0",
+      "kind": "stone",
+      "x": 3,
+      "y": 0,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-1-0",
+      "kind": "stone",
+      "x": 3,
+      "y": 1,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-0-0",
+      "kind": "stone",
+      "x": 4,
+      "y": 0,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-1-0",
+      "kind": "stone",
+      "x": 4,
+      "y": 1,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-5-0-0",
+      "kind": "stone",
+      "x": 5,
+      "y": 0,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-5-1-0",
+      "kind": "stone",
+      "x": 5,
+      "y": 1,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-0-0",
+      "kind": "stone",
+      "x": 6,
+      "y": 0,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-1-0",
+      "kind": "stone",
+      "x": 6,
+      "y": 1,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-0-0",
+      "kind": "stone",
+      "x": 7,
+      "y": 0,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-1-0",
+      "kind": "stone",
+      "x": 7,
+      "y": 1,
+      "z": 0,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-0-1",
+      "kind": "stone",
+      "x": 0,
+      "y": 0,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-1-1",
+      "kind": "stone",
+      "x": 0,
+      "y": 1,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-0-1",
+      "kind": "stone",
+      "x": 1,
+      "y": 0,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-1-1",
+      "kind": "stone",
+      "x": 1,
+      "y": 1,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-0-1",
+      "kind": "stone",
+      "x": 2,
+      "y": 0,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-1-1",
+      "kind": "stone",
+      "x": 2,
+      "y": 1,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-0-1",
+      "kind": "stone",
+      "x": 3,
+      "y": 0,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-1-1",
+      "kind": "stone",
+      "x": 3,
+      "y": 1,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-0-1",
+      "kind": "stone",
+      "x": 4,
+      "y": 0,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-1-1",
+      "kind": "stone",
+      "x": 4,
+      "y": 1,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-5-0-1",
+      "kind": "stone",
+      "x": 5,
+      "y": 0,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-0-1",
+      "kind": "stone",
+      "x": 6,
+      "y": 0,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-1-1",
+      "kind": "stone",
+      "x": 6,
+      "y": 1,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-0-1",
+      "kind": "stone",
+      "x": 7,
+      "y": 0,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-1-1",
+      "kind": "stone",
+      "x": 7,
+      "y": 1,
+      "z": 1,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-0-2",
+      "kind": "stone",
+      "x": 0,
+      "y": 0,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-1-2",
+      "kind": "stone",
+      "x": 0,
+      "y": 1,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-0-2",
+      "kind": "stone",
+      "x": 1,
+      "y": 0,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-1-2",
+      "kind": "stone",
+      "x": 1,
+      "y": 1,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-0-2",
+      "kind": "stone",
+      "x": 2,
+      "y": 0,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-1-2",
+      "kind": "stone",
+      "x": 2,
+      "y": 1,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-0-2",
+      "kind": "stone",
+      "x": 3,
+      "y": 0,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-1-2",
+      "kind": "stone",
+      "x": 3,
+      "y": 1,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-0-2",
+      "kind": "stone",
+      "x": 4,
+      "y": 0,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-5-0-2",
+      "kind": "stone",
+      "x": 5,
+      "y": 0,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-0-2",
+      "kind": "stone",
+      "x": 6,
+      "y": 0,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-1-2",
+      "kind": "stone",
+      "x": 6,
+      "y": 1,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-0-2",
+      "kind": "stone",
+      "x": 7,
+      "y": 0,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-1-2",
+      "kind": "stone",
+      "x": 7,
+      "y": 1,
+      "z": 2,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-0-3",
+      "kind": "stone",
+      "x": 0,
+      "y": 0,
+      "z": 3,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-0-3",
+      "kind": "stone",
+      "x": 1,
+      "y": 0,
+      "z": 3,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-0-3",
+      "kind": "stone",
+      "x": 2,
+      "y": 0,
+      "z": 3,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-0-3",
+      "kind": "stone",
+      "x": 3,
+      "y": 0,
+      "z": 3,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-0-3",
+      "kind": "stone",
+      "x": 4,
+      "y": 0,
+      "z": 3,
+      "direction": "north"
+    },
+    {
+      "id": "stone-5-0-3",
+      "kind": "stone",
+      "x": 5,
+      "y": 0,
+      "z": 3,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-0-3",
+      "kind": "stone",
+      "x": 6,
+      "y": 0,
+      "z": 3,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-0-3",
+      "kind": "stone",
+      "x": 7,
+      "y": 0,
+      "z": 3,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-0-4",
+      "kind": "stone",
+      "x": 0,
+      "y": 0,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-1-4",
+      "kind": "stone",
+      "x": 0,
+      "y": 1,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-0-4",
+      "kind": "stone",
+      "x": 1,
+      "y": 0,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-1-4",
+      "kind": "stone",
+      "x": 1,
+      "y": 1,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-0-4",
+      "kind": "stone",
+      "x": 2,
+      "y": 0,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-1-4",
+      "kind": "stone",
+      "x": 2,
+      "y": 1,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-0-4",
+      "kind": "stone",
+      "x": 3,
+      "y": 0,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-1-4",
+      "kind": "stone",
+      "x": 3,
+      "y": 1,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-0-4",
+      "kind": "stone",
+      "x": 4,
+      "y": 0,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-5-0-4",
+      "kind": "stone",
+      "x": 5,
+      "y": 0,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-0-4",
+      "kind": "stone",
+      "x": 6,
+      "y": 0,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-1-4",
+      "kind": "stone",
+      "x": 6,
+      "y": 1,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-0-4",
+      "kind": "stone",
+      "x": 7,
+      "y": 0,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-1-4",
+      "kind": "stone",
+      "x": 7,
+      "y": 1,
+      "z": 4,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-0-5",
+      "kind": "stone",
+      "x": 0,
+      "y": 0,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-1-5",
+      "kind": "stone",
+      "x": 0,
+      "y": 1,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-0-5",
+      "kind": "stone",
+      "x": 1,
+      "y": 0,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-1-5",
+      "kind": "stone",
+      "x": 1,
+      "y": 1,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-0-5",
+      "kind": "stone",
+      "x": 2,
+      "y": 0,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-1-5",
+      "kind": "stone",
+      "x": 2,
+      "y": 1,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-0-5",
+      "kind": "stone",
+      "x": 3,
+      "y": 0,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-1-5",
+      "kind": "stone",
+      "x": 3,
+      "y": 1,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-0-5",
+      "kind": "stone",
+      "x": 4,
+      "y": 0,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-1-5",
+      "kind": "stone",
+      "x": 4,
+      "y": 1,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-5-0-5",
+      "kind": "stone",
+      "x": 5,
+      "y": 0,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-5-1-5",
+      "kind": "stone",
+      "x": 5,
+      "y": 1,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-0-5",
+      "kind": "stone",
+      "x": 6,
+      "y": 0,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-1-5",
+      "kind": "stone",
+      "x": 6,
+      "y": 1,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-0-5",
+      "kind": "stone",
+      "x": 7,
+      "y": 0,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-1-5",
+      "kind": "stone",
+      "x": 7,
+      "y": 1,
+      "z": 5,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-0-6",
+      "kind": "stone",
+      "x": 0,
+      "y": 0,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-0-1-6",
+      "kind": "stone",
+      "x": 0,
+      "y": 1,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-0-6",
+      "kind": "stone",
+      "x": 1,
+      "y": 0,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-1-1-6",
+      "kind": "stone",
+      "x": 1,
+      "y": 1,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-0-6",
+      "kind": "stone",
+      "x": 2,
+      "y": 0,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-2-1-6",
+      "kind": "stone",
+      "x": 2,
+      "y": 1,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-0-6",
+      "kind": "stone",
+      "x": 3,
+      "y": 0,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-3-1-6",
+      "kind": "stone",
+      "x": 3,
+      "y": 1,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-0-6",
+      "kind": "stone",
+      "x": 4,
+      "y": 0,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-4-1-6",
+      "kind": "stone",
+      "x": 4,
+      "y": 1,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-5-0-6",
+      "kind": "stone",
+      "x": 5,
+      "y": 0,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-5-1-6",
+      "kind": "stone",
+      "x": 5,
+      "y": 1,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-0-6",
+      "kind": "stone",
+      "x": 6,
+      "y": 0,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-6-1-6",
+      "kind": "stone",
+      "x": 6,
+      "y": 1,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-0-6",
+      "kind": "stone",
+      "x": 7,
+      "y": 0,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "stone-7-1-6",
+      "kind": "stone",
+      "x": 7,
+      "y": 1,
+      "z": 6,
+      "direction": "north"
+    },
+    {
+      "id": "gate",
+      "x": 5,
+      "z": 2,
+      "y": 1,
+      "kind": "crate",
+      "direction": "north"
+    },
+    {
+      "id": "fern-a",
+      "kind": "plant",
+      "x": 0,
+      "z": 0,
+      "y": 2,
+      "direction": "north"
+    },
+    {
+      "id": "fern-b",
+      "kind": "plant",
+      "x": 7,
+      "z": 6,
+      "y": 2,
+      "direction": "north"
+    },
+    {
+      "id": "arch",
+      "kind": "arch",
+      "x": 2,
+      "z": 0,
+      "y": 2,
+      "direction": "north"
+    },
+    {
+      "id": "bridge-4-4-3-north",
+      "kind": "bridge",
+      "x": 4,
+      "y": 4,
+      "z": 3,
+      "direction": "north"
+    }
+  ],
+  "source": {
+    "x": 2,
+    "z": 3,
+    "y": 1
+  },
+  "spawn": {
+    "x": 5,
+    "y": 1,
+    "z": 4
+  },
+  "description": "面朝北拉近箱子，封住右侧水路；经西侧支路走到出口。",
+  "route": [
+    {
+      "type": "turn",
+      "direction": "north"
+    },
+    {
+      "type": "pull"
+    },
+    {
+      "type": "move",
+      "direction": "west"
+    },
+    {
+      "type": "move",
+      "direction": "north"
+    },
+    {
+      "type": "move",
+      "direction": "west"
+    },
+    {
+      "type": "move",
+      "direction": "west"
+    },
+    {
+      "type": "move",
+      "direction": "west"
+    },
+    {
+      "type": "move",
+      "direction": "west"
+    }
+  ]
+}

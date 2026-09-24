@@ -1,0 +1,131 @@
+{
+  "browser": "153.0.8010.53",
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "samples": [
+    {
+      "paused": false,
+      "gridVisible": false,
+      "elapsed": 3.094999999999992,
+      "azimuth": 36,
+      "elevation": 32.99999999999999,
+      "zoom": 1,
+      "fps": 200,
+      "drawCalls": 109,
+      "triangles": 49662,
+      "pixelRatio": 1
+    },
+    {
+      "paused": false,
+      "gridVisible": false,
+      "elapsed": 4.099899999999995,
+      "azimuth": 36,
+      "elevation": 32.99999999999999,
+      "zoom": 1,
+      "fps": 200,
+      "drawCalls": 109,
+      "triangles": 49662,
+      "pixelRatio": 1
+    },
+    {
+      "paused": false,
+      "gridVisible": false,
+      "elapsed": 5.104999999999971,
+      "azimuth": 36,
+      "elevation": 32.99999999999999,
+      "zoom": 1,
+      "fps": 200,
+      "drawCalls": 109,
+      "triangles": 49662,
+      "pixelRatio": 1
+    },
+    {
+      "paused": false,
+      "gridVisible": false,
+      "elapsed": 6.109899999999946,
+      "azimuth": 36,
+      "elevation": 32.99999999999999,
+      "zoom": 1,
+      "fps": 200,
+      "drawCalls": 109,
+      "triangles": 49662,
+      "pixelRatio": 1
+    },
+    {
+      "paused": false,
+      "gridVisible": false,
+      "elapsed": 7.109899999999924,
+      "azimuth": 36,
+      "elevation": 32.99999999999999,
+      "zoom": 1,
+      "fps": 200,
+      "drawCalls": 109,
+      "triangles": 49662,
+      "pixelRatio": 1
+    },
+    {
+      "paused": false,
+      "gridVisible": false,
+      "elapsed": 8.114899999999913,
+      "azimuth": 36,
+      "elevation": 32.99999999999999,
+      "zoom": 1,
+      "fps": 200,
+      "drawCalls": 109,
+      "triangles": 49662,
+      "pixelRatio": 1
+    },
+    {
+      "paused": false,
+      "gridVisible": false,
+      "elapsed": 9.114999999999977,
+      "azimuth": 36,
+      "elevation": 32.99999999999999,
+      "zoom": 1,
+      "fps": 200,
+      "drawCalls": 109,
+      "triangles": 49662,
+      "pixelRatio": 1
+    },
+    {
+      "paused": false,
+      "gridVisible": false,
+      "elapsed": 10.11990000000005,
+      "azimuth": 36,
+      "elevation": 32.99999999999999,
+      "zoom": 1,
+      "fps": 200,
+      "drawCalls": 109,
+      "triangles": 49662,
+      "pixelRatio": 1
+    },
+    {
+      "paused": false,
+      "gridVisible": false,
+      "elapsed": 11.120000000000111,
+      "azimuth": 36,
+      "elevation": 32.99999999999999,
+      "zoom": 1,
+      "fps": 200,
+      "drawCalls": 109,
+      "triangles": 49662,
+      "pixelRatio": 1
+    },
+    {
+      "paused": false,
+      "gridVisible": false,
+      "elapsed": 12.119900000000177,
+      "azimuth": 36,
+      "elevation": 32.99999999999999,
+      "zoom": 1,
+      "fps": 200,
+      "drawCalls": 109,
+      "triangles": 49662,
+      "pixelRatio": 1
+    }
+  ],
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Laptop GPU (0x00002D58) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

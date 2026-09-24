@@ -1,0 +1,51 @@
+{
+  "browser": "153.0.4234.48",
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "benchmark": {
+    "runs": 100,
+    "mean": 0.5030000007152557,
+    "max": 2.5
+  },
+  "samples": [
+    {
+      "fps": 191,
+      "drawCalls": 35,
+      "triangles": 617506,
+      "pixelRatio": 1,
+      "waterTime": 1.5997999999999963
+    },
+    {
+      "fps": 200,
+      "drawCalls": 35,
+      "triangles": 617506,
+      "pixelRatio": 1,
+      "waterTime": 2.1000999999999928
+    },
+    {
+      "fps": 200,
+      "drawCalls": 35,
+      "triangles": 617506,
+      "pixelRatio": 1,
+      "waterTime": 2.609899999999995
+    },
+    {
+      "fps": 200,
+      "drawCalls": 35,
+      "triangles": 617506,
+      "pixelRatio": 1,
+      "waterTime": 3.1147999999999962
+    },
+    {
+      "fps": 200,
+      "drawCalls": 35,
+      "triangles": 617506,
+      "pixelRatio": 1,
+      "waterTime": 3.6199999999999948
+    }
+  ],
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Laptop GPU (0x00002D58) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

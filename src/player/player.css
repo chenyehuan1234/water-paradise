@@ -1,0 +1,157 @@
+:root{
+  font-family:'Microsoft YaHei UI','PingFang SC',sans-serif;
+  color:#30483f;
+  --paper:#f7f5ec;
+  --ink:#30483f;
+  --muted:#66766b;
+  --line:#d9ddd0;
+  --accent:#3b7160;
+  --accent-dark:#295746;
+  --gold:#a56b39;
+  --water:#7fa9a0;
+  font-size:14px;
+}
+*{box-sizing:border-box}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,a:focus-visible,canvas:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,p{margin:0}
+
+/* ============ 关卡大厅 ============ */
+.hall-page{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(900px 420px at 85% -8%, #cfe0d6 0%, transparent 60%),
+    radial-gradient(760px 420px at 0% 0%, #dbe6dd 0%, transparent 55%),
+    linear-gradient(180deg,#eef1e8 0%,#e6ebe0 100%);
+}
+.hall-nav{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 28px;
+  background:#f7f5ece6;backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{
+  width:38px;height:42px;border:1px solid #9cb5a3;border-radius:22px 22px 12px 12px;
+  background:#d6e5d8;display:grid;place-items:center;
+  color:#568575;font-family:serif;font-size:24px;
+}
+.brand h1{font-family:'STSong','SimSun',serif;font-size:22px;letter-spacing:3px}
+.brand small{display:block;letter-spacing:2px;font-size:10px;color:var(--muted);margin-top:2px}
+.hall-nav .nav-actions{display:flex;gap:8px;align-items:center}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  min-height:42px;padding:8px 16px;
+  border:1px solid var(--line);border-radius:9px;background:#f8f7f0;
+  transition:background .12s,transform .1s;
+}
+.btn:hover{background:#e6eddf}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent);color:#fffdf1;border-color:var(--accent)}
+.btn.primary:hover{background:var(--accent-dark)}
+
+.hero{max-width:1180px;margin:0 auto;padding:56px 28px 28px}
+.hero .kicker{font-size:11px;letter-spacing:4px;color:var(--muted);font-weight:600}
+.hero h2{
+  font-family:'STSong','SimSun',serif;
+  font-size:46px;letter-spacing:6px;margin:10px 0 14px;color:#264134;
+}
+.hero p{font-size:14px;line-height:2;color:var(--muted);max-width:680px}
+.progress-line{
+  margin-top:24px;display:flex;align-items:center;gap:14px;
+  font-size:12px;color:var(--muted);
+}
+.progress-bar{flex:0 1 320px;height:8px;border-radius:6px;background:#d8e0d4;overflow:hidden}
+.progress-bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#6fa08a);border-radius:6px;transition:width .4s}
+
+.chapters-wrap{max-width:1180px;margin:0 auto;padding:18px 28px 80px}
+.chapter-block{margin-bottom:44px}
+.chapter-head{display:flex;align-items:baseline;gap:12px;margin:0 4px 18px}
+.chapter-head h3{font-family:'STSong','SimSun',serif;font-size:23px;letter-spacing:2px;color:#2c4a3c}
+.chapter-head .chapter-meta{font-size:11px;color:var(--muted);letter-spacing:1px}
+.level-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.level-card{
+  position:relative;display:block;text-align:left;
+  padding:18px 18px 16px;border:1px solid var(--line);border-radius:14px;
+  background:var(--paper);
+  box-shadow:0 2px 10px #4768570a;
+  transition:transform .13s,box-shadow .13s,border-color .13s;
+  min-height:128px;
+}
+.level-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px #4768571c;border-color:#bccfbe;text-decoration:none}
+.level-card .card-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.level-card .seq{
+  font-family:Georgia,serif;font-size:13px;color:#fff;
+  background:#8ba896;border-radius:8px;padding:3px 9px;letter-spacing:1px;
+}
+.level-card h4{font-size:16px;margin:0;letter-spacing:1px;color:#2c4a3c}
+.level-card .card-desc{
+  font-size:12px;line-height:1.7;color:var(--muted);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.level-card .card-foot{
+  margin-top:10px;display:flex;align-items:center;justify-content:space-between;
+  font-size:10px;color:#8a978c;letter-spacing:1px;
+}
+.level-card .done-badge{
+  display:none;align-items:center;gap:4px;
+  color:var(--gold);font-size:11px;font-weight:600;
+}
+.level-card.is-done .done-badge{display:inline-flex}
+.level-card.is-done .seq{background:var(--gold)}
+.level-card.is-done{border-color:#e2d3b6}
+
+.hall-footer{
+  border-top:1px solid var(--line);
+  background:#f2f1e7;
+  padding:22px 28px;text-align:center;font-size:11px;color:#77857a;line-height:1.9;
+}
+
+/* ============ 玩家游戏页 ============ */
+.play-page{margin:0;height:100vh;overflow:hidden;background:#a7bcb0}
+.play-shell{display:grid;grid-template-rows:60px minmax(0,1fr) 38px;height:100vh}
+.play-topbar{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 18px;background:var(--paper);border-bottom:1px solid var(--line);
+}
+.play-topbar .play-title{display:flex;flex-direction:column;line-height:1.3;min-width:0;margin-right:auto}
+.play-topbar .play-title strong{font-size:15px;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.play-topbar .play-title small{font-size:10px;color:var(--muted);letter-spacing:1px}
+.play-topbar button{
+  min-height:42px;padding:7px 13px;border:1px solid var(--line);border-radius:8px;background:#f8f7f0;
+}
+.play-topbar button:hover{background:#e6eddf}
+.play-topbar button:disabled{opacity:.45;cursor:default}
+.turn-chip{font-size:11px;color:var(--muted);padding:6px 10px;background:#eef0e6;border-radius:8px;white-space:nowrap}
+.play-stage{position:relative;min-height:0;min-width:0;overflow:hidden}
+.play-stage canvas{display:block;width:100%;height:100%;touch-action:none;outline-offset:-3px}
+.play-hintbar{
+  display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;
+  background:#f2f1e7;border-top:1px solid var(--line);
+  font-size:11px;color:#596e61;padding:0 14px;
+}
+.play-hintbar b{color:#3f5a4b;font-weight:600}
+.play-win{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  background:#f9f2dff2;border:1px solid #e0c797;border-radius:16px;
+  padding:28px 36px;text-align:center;box-shadow:0 16px 60px #465d4138;
+  min-width:300px;
+}
+.play-win h3{font-family:'STSong','SimSun',serif;font-size:26px;letter-spacing:3px;color:#5a4520}
+.play-win p{font-size:12px;color:#8a7350;margin:10px 0 20px}
+.play-win .win-actions{display:flex;gap:10px;justify-content:center}
+.play-win[hidden]{display:none}
+.play-error{
+  position:absolute;top:80px;left:50%;transform:translateX(-50%);
+  max-width:440px;background:#fff3dc;color:#7a4030;border:1px solid #c88768;
+  padding:16px 20px;border-radius:12px;font-size:13px;line-height:1.7;
+}
+.play-error[hidden]{display:none}
+.play-loading{position:absolute;inset:0;display:grid;place-items:center;background:#a7bcb0;letter-spacing:3px;color:#335245}
+.play-loading[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}

@@ -1,0 +1,18 @@
+{
+  "browser": "153.0.8010.53",
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "objects": 32768,
+  "loadRoundTripMs": 4381,
+  "timings": {
+    "solveMs": 26.899999976158142,
+    "sceneMs": 125.10000002384186
+  },
+  "fps": [
+    200,
+    198,
+    200
+  ]
+}

@@ -1,0 +1,33 @@
+[
+  {
+    "scenario": "empty",
+    "oldId": "origin-old-f0a07a43",
+    "count": 1,
+    "bound": {
+      "id": "first",
+      "kind": "wood"
+    },
+    "upper": {
+      "id": "second",
+      "y": 2
+    },
+    "refresh": "ok",
+    "oldUnchanged": true
+  },
+  {
+    "scenario": "merge",
+    "newId": "origin-new-7a79acf5",
+    "oldId": "origin-old-01378ab4",
+    "count": 14,
+    "bound": {
+      "id": "first",
+      "kind": "wood"
+    },
+    "upper": {
+      "id": "second",
+      "y": 2
+    },
+    "refresh": "ok",
+    "oldUnchanged": true
+  }
+]
