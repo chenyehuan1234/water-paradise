@@ -1,0 +1,14 @@
+<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="water-paradise-transfer" content="v1"><title>水之天堂 · 本地资料迁移</title><body><script>
+const NEW_ORIGIN='http://127.0.0.1:4180';
+function readRequest(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+addEventListener('message',async event=>{
+  if(location.origin!=='http://127.0.0.1:4175'||event.origin!==NEW_ORIGIN||event.source!==parent||event.data?.type!=='water-paradise-transfer-request'||typeof event.data.nonce!=='string')return;
+  let payload=null,error=null;
+  try{if(!(await indexedDB.databases()).some(db=>db.name==='water-paradise-workshop')){event.source.postMessage({type:'water-paradise-transfer-response',nonce:event.data.nonce,payload:null,error:null},NEW_ORIGIN);return;}
+    const db=await new Promise((resolve,reject)=>{const req=indexedDB.open('water-paradise-workshop',1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const tx=db.transaction(['meta','levels','backups'],'readonly');const [meta,levels,backups]=await Promise.all([readRequest(tx.objectStore('meta').get('project')),readRequest(tx.objectStore('levels').getAll()),readRequest(tx.objectStore('backups').getAll())]);
+    payload={meta,levels,backups,legacy:localStorage.getItem('water-paradise:editor:v1')};db.close();
+  }catch(cause){error=String(cause);}
+  event.source.postMessage({type:'water-paradise-transfer-response',nonce:event.data.nonce,payload,error},NEW_ORIGIN);
+});
+</script></body></html>

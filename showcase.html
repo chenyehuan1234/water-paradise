@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#dce5db" />
+    <meta name="description" content="水之天堂 · 一座浮在风里的水庭院。自由探索三维美术样板。" />
+    <title>水之天堂 · 空中庭院</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <script type="module" crossorigin src="./assets/showcase-S8f7-rMR.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-P2Xu9kJm.js">
+    <link rel="modulepreload" crossorigin href="./assets/RoundedBoxGeometry-B2Vraf6p.js">
+    <link rel="stylesheet" crossorigin href="./assets/showcase-Tfp-Bbcb.css">
+  </head>
+  <body>
+    <main id="app">
+      <div id="scene" role="img" aria-label="奶油色石材搭建的空中水庭院，上层水池通过瀑布流向下层浅池。可拖动观察。"></div>
+      <header class="masthead">
+        <div class="edition"><span class="edition-line"></span> A GARDEN ABOVE THE CLOUDS</div>
+        <h1>水之天堂<span class="title-dot">。</span></h1>
+        <p class="intro">让水慢下来，让目光远一点。</p>
+      </header>
+      <aside class="chapter" aria-label="当前展示">
+        <span class="chapter-number">01</span>
+        <span class="chapter-copy">空中庭院<span>美术探索 · 第一章</span></span>
+      </aside>
+      <div id="loading" class="status-card" role="status">正在唤醒庭院<span class="loading-dots"> …</span></div>
+      <div id="error" class="status-card error-card" role="alert" hidden>
+        <h2>庭院暂时无法打开</h2>
+        <p id="error-message">请使用支持 WebGL 2 的现代浏览器，并开启硬件加速。</p>
+        <button id="reload" type="button">重新打开</button>
+      </div>
+      <footer class="bottom-bar">
+        <div class="scene-caption"><span class="live-dot" aria-hidden="true"></span><span>一方水，一座悬空的花园</span><small>WATER PARADISE / STUDY 001</small></div>
+        <nav class="controls" aria-label="庭院展示控制">
+          <button id="reset-view" type="button" title="重置视角（R）"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1.8 7M4 4v6h6"/></svg><span>重置视角</span></button>
+          <span class="control-divider" aria-hidden="true"></span>
+          <button id="toggle-motion" type="button" aria-pressed="false" title="暂停或播放水面动画（空格）"><svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg><span>暂停动画</span></button>
+          <button id="toggle-grid" type="button" aria-pressed="false" title="显示或隐藏格子网格（G）"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M4 15h16M10 4v16M15 4v16"/></svg><span>显示网格</span></button>
+        </nav>
+      </footer>
+      <p class="interaction-hint"><span class="mouse-symbol" aria-hidden="true"></span>拖动环绕<span class="hint-dot">·</span>滚轮缩放<span class="hint-dot">·</span>方向键观察</p>
+      <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+      <a href="./" style="position:absolute;z-index:3;top:3%;right:6.7%;color:#526656;font-size:11px;padding:12px;text-decoration:none">返回水的去向 ↗</a>
+    </main>
+  </body>
+</html>
