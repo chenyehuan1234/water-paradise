@@ -37,6 +37,8 @@
 .index-play .toolbar{order:2}
 .index-play .toolbar #undo,.index-play .toolbar #redo,.index-play #restart{display:none!important}
 .flying .scene-heading,.flying .canvas-tools,.flying .stats-chip{opacity:0;pointer-events:none;transition:opacity .25s ease}
+.flying canvas,.flying .mobile-pad{pointer-events:none !important;touch-action:none !important}
+.flying *{cursor:default !important}
 .playing:not(.index-play) #level-drawer-toggle{display:none}#mobile-rules{display:none}
 .side-heading-actions{display:flex;align-items:center;gap:5px}.side-heading-actions #rules-open{font-size:11px;white-space:nowrap;background:#eaf0e4}.rules-copy{max-height:55vh;overflow:auto;font-size:13px;line-height:1.85;color:#415b4d}.rules-copy p{margin:0 0 12px}.rules-copy ul{padding-left:22px;margin:0 0 14px}.rules-copy li{margin:7px 0}.rules-copy .rules-hint{color:#718674;font-size:12px}.scene-title{pointer-events:auto}.copy-editor{display:block;margin:8px 0 0!important}.copy-editor input,.copy-editor textarea{display:block;width:100%;border:1px solid #c8d5c7;background:#fffdf7e8;border-radius:6px;color:#324d41}.copy-editor input{font-family:'STSong','SimSun',serif;font-size:19px;letter-spacing:1px}.copy-editor textarea{min-height:64px;padding:7px 8px;resize:vertical;font:12px/1.55 'Microsoft YaHei',sans-serif}.scene-title .copy-display{display:none}.playing .scene-title .copy-display{display:block}.scene-title #description[hidden]{display:none}.playing .scene-title .copy-editor{display:none}.mobile-pad{display:none}
 @media(max-width:700px), (max-width:900px) and (max-height:500px){
@@ -65,7 +67,8 @@
   .mobile-pad button{min-height:54px;border-radius:12px;font-weight:700;font-size:23px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 3px 0 #adc7af}
   .mobile-dpad .pad-up{grid-column:2;grid-row:1}.mobile-dpad .pad-left{grid-column:1;grid-row:2}.mobile-dpad .pad-right{grid-column:3;grid-row:2}.mobile-dpad .pad-down{grid-column:2;grid-row:3}
   .mobile-actions{display:flex;flex-direction:column;gap:6px}.mobile-actions button{font-size:15px;min-height:50px}.mobile-actions #mobile-pull{background:#346d59;color:#fffbed;border-color:#346d59}
-  .playing .cinematic-cue{bottom:16px;min-width:min(280px,80vw);padding:10px 14px}.playing .cinematic-cue strong{font-size:18px}
+  .playing .cinematic-cue{display:none !important}
+  .playing.flying .cinematic-cue{display:none !important}
   .playing .notice{bottom:calc(190px + env(safe-area-inset-bottom));max-width:90vw}
   .playing dialog{min-width:0;width:min(92vw,520px);max-height:84dvh;padding:18px}
 }
