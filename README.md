@@ -1,7 +1,9 @@
 # 水之天堂 · Water Paradise
 
-> 本项目是对 **dropout** 原作的非商业复刻与移动端适配版。
-> 原作链接：[dropout](https://dropout.itch.io/water-paradise)（如链接有误请以原作实际地址为准）
+![游戏截图](docs/screenshot.png)
+
+> 本项目是对 **Outpour** 原作的非商业复刻与移动端适配版。
+> 原作 Steam 链接：[Outpour Demo](https://store.steampowered.com/app/4694840/Outpour_Demo/)
 
 堆叠方块搭建多层空中庭院，引导天空水源穿过石桥、铁架与浮船，推动木箱、隔水拉取、借落水的力量开路——当全图只剩一条出水边，并亲自抵达它，庭院便告完成。
 
@@ -47,4 +49,4 @@ npm run preview
 
 ## 关于复刻
 
-本项目为学习与个人兴趣目的的非商业复刻，游戏机制、关卡设计与美术风格致敬原作 dropout。如原作作者认为侵权，请联系移除。
+本项目为学习与个人兴趣目的的非商业复刻，游戏机制、关卡设计与美术风格致敬原作 Outpour（Steam: https://store.steampowered.com/app/4694840/Outpour_Demo/）。如原作作者认为侵权，请联系移除。
