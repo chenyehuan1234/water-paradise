@@ -1,4 +1,5 @@
 import { top, waterSolid } from './catalog';
+import { balanceParts } from './balance';
 import { faceKey } from './spatial';
 import { DIRS, key } from './types';
 import type { Direction, LevelDataV2, Vec3, WaterCell, WaterEdge, WaterSolution, WorldObject } from './types';
@@ -14,20 +15,36 @@ class MinHeap {
 /** Solid floors create independent air intervals. Bottomless air is a drain, never a spreading surface. */
 export function solveWater(level: LevelDataV2, objects: WorldObject[] = level.objects): WaterSolution {
   const columns: Interval[][] = Array.from({ length: level.width * level.depth }, () => []), nodes: Interval[] = [];
-  const occupied = new Map<number, Set<number>>(), glass = new Set<string>();
+  const occupied = new Map<number, Set<number>>(), floors = new Map<number, Set<number>>(), glass = new Set<string>(), openGlass = new Set<string>();
   for (const o of objects) {
     if (waterSolid(o)) { const k = o.z * level.width + o.x; if (!occupied.has(k)) occupied.set(k, new Set()); for (let y = o.y; y < top(o); y++) occupied.get(k)!.add(y); }
-    if (o.kind === 'glass') glass.add(faceKey(o, o.direction));
+    if (o.kind === 'glass' || o.kind === 'stone-fence') glass.add(faceKey(o, o.direction));
+    if (o.kind === 'open-glass') openGlass.add(faceKey(o, o.direction));
+  }
+  // A balance tray is a zero-thickness floor. It divides the air above and
+  // below without occupying either height cell or blocking water beneath it.
+  const ends = objects.filter(o => o.kind === 'balance-end');
+  const expanded = new Set(ends.map(o => o.balanceId));
+  for (const root of objects.filter(o => o.kind === 'balance' && !expanded.has(o.id)))
+    ends.push(...balanceParts(root, 0).filter(o => o.kind === 'balance-end'));
+  for (const end of ends) {
+    const k = end.z * level.width + end.x;
+    if (end.x < 0 || end.z < 0 || end.x >= level.width || end.z >= level.depth || end.y < 0 || end.y > 32) continue;
+    if (!floors.has(k)) floors.set(k, new Set());
+    floors.get(k)!.add(end.y);
   }
   for (let z = 0; z < level.depth; z++) for (let x = 0; x < level.width; x++) {
-    const col = columns[z * level.width + x], occ = occupied.get(z * level.width + x) ?? new Set<number>();
+    const col = columns[z * level.width + x], occ = occupied.get(z * level.width + x) ?? new Set<number>(), plates = floors.get(z * level.width + x) ?? new Set<number>();
     let floor = 0, supported = false;
     for (let y = 0; y <= 32; y++) {
-      if (y === 32 || occ.has(y)) {
-        if (y > floor || y === 32 && floor === 32) { const n: Interval = { x, y: floor, z, ceiling: y === 32 ? 36 : y, supported, index: nodes.length, links: [], drains: [], head: Infinity }; col.push(n); nodes.push(n); }
-        floor = y + 1; supported = true;
+      if (y === 32 || occ.has(y) || plates.has(y)) {
+        if (y > floor || y === 32 && floor === 32 && !plates.has(32)) { const n: Interval = { x, y: floor, z, ceiling: y === 32 ? 36 : y, supported, index: nodes.length, links: [], drains: [], head: Infinity }; col.push(n); nodes.push(n); }
+        if (occ.has(y)) floor = y + 1;
+        else if (plates.has(y)) floor = y;
+        supported = supported || occ.has(y) || plates.has(y);
       }
     }
+    if (plates.has(32) && floor === 32) { const n: Interval = { x, y: 32, z, ceiling: 36, supported: true, index: nodes.length, links: [], drains: [], head: Infinity }; col.push(n); nodes.push(n); }
   }
   const firstOpening = (n: Interval, direction: Direction, low: number, high: number) => { let y = low; while (y < high && glass.has(faceKey({ ...n, y }, direction))) y++; return y < high ? y : Infinity; };
   for (const n of nodes) if (n.supported) for (const d of DIRS) {
@@ -61,7 +78,9 @@ export function solveWater(level: LevelDataV2, objects: WorldObject[] = level.ob
     for (const edge of n.drains) if (edge.sill <= n.head) {
       const id = `${key(n)}:${edge.direction}:outlet`; if (emitted.has(id)) continue; emitted.add(id);
       const from = Math.min(n.head, edge.ceiling);
-      outlets.push({ id, cellId: key(n), x: n.x, y: n.y, z: n.z, direction: edge.direction, from, to: from - 4, kind: 'outlet' });
+      let canFinish = true;
+      for (let y = n.y; y <= from; y++) if (openGlass.has(faceKey({ ...n, y }, edge.direction))) { canFinish = false; break; }
+      outlets.push({ id, cellId: key(n), x: n.x, y: n.y, z: n.z, direction: edge.direction, from, to: from - 4, kind: 'outlet', canFinish });
     }
     for (const edge of n.links) { const b = nodes[edge.node]; if (wet.has(b.index) && edge.sill <= n.head && b.head < n.head) {
       const from = Math.min(n.head, edge.ceiling), to = Math.max(b.y, Math.min(b.head, b.ceiling));

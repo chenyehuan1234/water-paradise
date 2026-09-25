@@ -10,6 +10,8 @@ function complete(tx: IDBTransaction): Promise<void> { return new Promise((resol
 export class ProjectStore {
   private queue = Promise.resolve();
   migrationUnavailable = false;
+  async loadCompleted():Promise<Set<string>>{const db=await open();try{const tx=db.transaction('meta','readonly'),done=complete(tx),ids=await request(tx.objectStore('meta').get('completed-levels'));await done;return new Set(Array.isArray(ids)?ids.filter((id):id is string=>typeof id==='string'):[]);}finally{db.close();}}
+  async markCompleted(id:string):Promise<void>{const db=await open();try{const tx=db.transaction('meta','readwrite'),done=complete(tx),store=tx.objectStore('meta');const old=await request(store.get('completed-levels'));store.put([...new Set([...(Array.isArray(old)?old:[]),id])],'completed-levels');await done;}finally{db.close();}}
   async load(): Promise<ProjectData | null> {
     const db = await open(); try {
       const tx = db.transaction(['meta', 'levels'], 'readonly'), done = complete(tx);

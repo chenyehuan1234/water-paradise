@@ -16,5 +16,5 @@ function migrationProbe(): Plugin {
 export default defineConfig({
   base: './',
   plugins:[migrationProbe()],
-  build: { target: 'es2022', rolldownOptions: { input: { main: 'index.html', play: 'play.html', workshop: 'workshop.html', showcase: 'showcase.html' } } },
+  build: { target: 'es2022', rolldownOptions: { input: { main: 'index.html' }, output: { inlineDynamicImports: true } } },
 });

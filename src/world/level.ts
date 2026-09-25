@@ -1,7 +1,7 @@
 import { validateLevel } from '../core/level';
 import type { LevelDataV1 } from '../core/types';
-import { catalog, glass, height, solid, top } from './catalog';
-import { bodyFree, faceKey, inside, supportAt } from './spatial';
+import { catalog, edgePanel, height, solid, top } from './catalog';
+import { bodyFree, faceKey, inside, placementError, supportAt } from './spatial';
 import { DIRS, clone, uid } from './types';
 import type { LevelDataV2, Vec3, WorldObject } from './types';
 
@@ -32,7 +32,7 @@ export function validateV2(value: unknown, playable = false): string[] {
   if (!Array.isArray(value.objects) || value.objects.length > 50000) return [...errors, '物件列表无效或超过 50000 个'];
   const ids = new Set<string>(), cells = new Set<string>(), faces = new Set<string>(), planes = new Set<string>();
   for (const raw of value.objects) {
-    if (!record(raw) || typeof raw.id !== 'string' || !raw.id || typeof raw.kind !== 'string' || !Object.hasOwn(catalog, raw.kind) || !pos(raw) || !DIRS.some(d => d.name === raw.direction)) { errors.push('存在无效的物件 ID、类型、方向或坐标'); break; }
+    if (!record(raw) || typeof raw.id !== 'string' || !raw.id || typeof raw.kind !== 'string' || !Object.hasOwn(catalog, raw.kind) || raw.kind.startsWith('balance-') || !pos(raw) || !DIRS.some(d => d.name === raw.direction)) { errors.push('存在无效的物件 ID、类型、方向或坐标'); break; }
     const o = raw as unknown as WorldObject;
     if (ids.has(o.id)) { errors.push(`物件 ID 重复：${o.id}`); break; } ids.add(o.id);
     if (o.y + height(o) > 32) errors.push(`物件 ${o.id} 超过 32 层`);
@@ -40,13 +40,14 @@ export function validateV2(value: unknown, playable = false): string[] {
       if (o.kind !== 'boat' || !Array.isArray(o.cargo) || o.cargo.some(c => !record(c) || typeof c.id !== 'string' || !c.id || !['wood', 'crate'].includes(c.kind as string))) errors.push('船上载荷数据无效');
       else for(const cargo of o.cargo){if(ids.has(cargo.id))errors.push(`载荷 ID 重复：${cargo.id}`);ids.add(cargo.id);}
     }
-    if (glass(o)) { const k = faceKey(o, o.direction); if (faces.has(k)) errors.push('玻璃边界重复'); faces.add(k); }
+    if (edgePanel(o)) { const k = faceKey(o, o.direction); if (faces.has(k)) errors.push('边界栏板重复'); faces.add(k); }
     if (o.kind === 'bridge') { const k = `${o.x},${o.y},${o.z}`; if (planes.has(k)) errors.push('桥板重复'); planes.add(k); }
     if (solid(o)) for (let y = o.y; y < top(o); y++) { const k = `${o.x},${y},${o.z}`; if (cells.has(k)) errors.push('实体物件重叠'); cells.add(k); }
     if (errors.length > 12) break;
   }
   if (!errors.length) {
     const l = value as unknown as LevelDataV2;
+    for(const balance of l.objects.filter(o=>o.kind==='balance')){const error=placementError({...l,objects:l.objects.filter(o=>o.id!==balance.id)},balance);if(error)errors.push(`天平 ${balance.id}：${error}`);}
     if (l.objects.some(o => o.kind === 'bridge' && l.objects.some(s => solid(s) && s.x === o.x && s.z === o.z && s.y < o.y && top(s) > o.y))) errors.push('桥板穿过实体');
     if (l.spawn && !bodyFree(l.objects, l.spawn)) errors.push('出生点与实体重叠');
     if (playable) {
