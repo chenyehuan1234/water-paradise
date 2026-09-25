@@ -1,6 +1,6 @@
 # 水之天堂 · Water Paradise
 
-![游戏截图](docs/screenshot.png)
+![游戏截图](docs/game-screenshot.png)
 
 > 本项目是对 **Outpour** 原作的非商业复刻与移动端适配版。
 > 原作 Steam 链接：[Outpour Demo](https://store.steampowered.com/app/4694840/Outpour_Demo/)
