@@ -1,10 +1,10 @@
-import { AmbientLight, Box3, BufferGeometry, Color, DirectionalLight, DoubleSide, Float32BufferAttribute, FogExp2, GridHelper, Group, HemisphereLight, InstancedMesh, Line, LineSegments, LineBasicMaterial, Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, OrthographicCamera, PCFShadowMap, Plane, Raycaster, Scene, SphereGeometry, SRGBColorSpace, Vector2, Vector3, WebGLRenderer, ACESFilmicToneMapping, BoxGeometry, TorusGeometry } from 'three';
+import { AmbientLight, Box3, BufferGeometry, CatmullRomCurve3, Color, DirectionalLight, DoubleSide, Float32BufferAttribute, FogExp2, GridHelper, Group, HemisphereLight, InstancedMesh, Line, LineSegments, LineBasicMaterial, Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, OrthographicCamera, PCFShadowMap, Plane, Raycaster, Scene, SphereGeometry, SRGBColorSpace, TubeGeometry, Vector2, Vector3, WebGLRenderer, ACESFilmicToneMapping, BoxGeometry, TorusGeometry } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { MOUSE } from 'three';
 import { dynamic, edgePanel, top } from '../world/catalog';
 import { balancePart, balanceParts, balancePivot } from '../world/balance';
 import { dir, DIRS } from '../world/types';
-import type { ActionEvent, Direction, EditorSettings, GameState, LevelDataV2, Vec3, WaterSolution, WorldObject } from '../world/types';
+import type { ActionEvent, Direction, EditorSettings, GameState, LevelDataV2, Vec3, WaterEdge, WaterSolution, WorldObject } from '../world/types';
 import type { Pick, Placement } from '../workshop/editor';
 import { balanceModel, gargoyle, prepareMaterials, prototype } from './models';
 import type { BalanceModel } from './models';
@@ -13,6 +13,8 @@ import { stoneArchitecture } from './architecture';
 
 const angle = (direction: Direction) => -DIRS.findIndex(d => d.name === direction) * Math.PI / 2;
 interface Motion { events: ActionEvent[]; elapsed: number; duration: number; previousFacing: number; splashes:Set<string> }
+interface NextCourtyard { level:LevelDataV2; state:GameState; water:WaterSolution; settings:EditorSettings }
+interface Flight { elapsed:number; duration:number; startTarget:Vector3; startOffset:Vector3; startZoom:number; destination:Vector3; offset:Vector3; nextSpan:number; preview:Group|null; previewWater:WaterLayer|null; stream:Group|null; curve:CatmullRomCurve3|null; droplets:InstancedMesh|null; onComplete:()=>void; next:boolean }
 export class WorldView {
   readonly renderer: WebGLRenderer;
   readonly scene = new Scene();
@@ -32,6 +34,7 @@ export class WorldView {
   private prototypes = new Map<string, Group>(); private dynamicGroups = new Map<string,Group>();
   private level: LevelDataV2 | null = null; private objects: WorldObject[] = []; private state: GameState | undefined;
   private settings: EditorSettings | undefined; private motion: Motion | null = null;
+  private flight:Flight|null=null;
   private chain = new Line(new BufferGeometry(),new LineBasicMaterial({color:'#6e461e'}));
   private chainLinks = new InstancedMesh(new TorusGeometry(.058,.02,6,12),new MeshStandardMaterial({color:'#e5b348',roughness:.32,metalness:.65,emissive:'#70440d',emissiveIntensity:.22}),420);
   private spit = new InstancedMesh(new SphereGeometry(.035,6,4),new MeshBasicMaterial({color:'#c5f3ed',transparent:true,opacity:.85}),28);
@@ -56,7 +59,7 @@ export class WorldView {
     this.scene.add(new HemisphereLight('#fff0d5','#687e75',2.1),new AmbientLight('#c9d8ca',.25));
     const sun=new DirectionalLight('#ffe5c5',2.7);sun.position.set(-10,24,13);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-25;sun.shadow.camera.right=25;sun.shadow.camera.top=25;sun.shadow.camera.bottom=-25;sun.shadow.camera.far=100;sun.shadow.normalBias=.035;sun.shadow.bias=-.0002;this.scene.add(sun);
     this.scene.add(this.staticGroup,this.movingGroup,this.balanceGroup,this.water.group,this.avatar.root,this.ghost,this.areaGhost,this.areaOutline,this.highlight,this.markers,this.chain,this.chainLinks,this.spit,this.spray,this.landingRings,this.grid,this.animatedEffects); this.ghost.visible=this.highlight.visible=this.chain.visible=this.chainLinks.visible=this.spit.visible=false;this.areaGhost.count=0;this.areaGhost.frustumCulled=this.areaOutline.frustumCulled=false;this.chainLinks.frustumCulled=this.spit.frustumCulled=this.spray.frustumCulled=this.landingRings.frustumCulled=false;this.ghost.renderOrder=8;this.areaGhost.renderOrder=8.1;this.areaOutline.renderOrder=8.2;this.highlight.renderOrder=9;
-    this.controls=new OrbitControls(this.camera,canvas);this.controls.enablePan=false;this.controls.enableDamping=false;this.controls.minZoom=.35;this.controls.maxZoom=4;this.controls.minPolarAngle=.001;this.controls.maxPolarAngle=Math.PI/2;this.controls.mouseButtons={LEFT:undefined,MIDDLE:MOUSE.ROTATE,RIGHT:undefined};
+    this.controls=new OrbitControls(this.camera,canvas);this.controls.enablePan=false;this.controls.enableDamping=false;this.controls.minZoom=.2;this.controls.maxZoom=4;this.controls.minPolarAngle=.001;this.controls.maxPolarAngle=Math.PI/2;this.controls.mouseButtons={LEFT:undefined,MIDDLE:MOUSE.ROTATE,RIGHT:undefined};
     canvas.addEventListener('contextmenu',e=>e.preventDefault());
     canvas.addEventListener('pointerdown',this.middleDown,true);canvas.addEventListener('pointermove',this.middleMove,true);canvas.addEventListener('pointerup',this.middleUp,true);canvas.addEventListener('pointercancel',()=>{this.middle=null;});canvas.addEventListener('auxclick',e=>e.preventDefault());
     canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.failed=true;onError('画面连接已中断。草稿仍保留，可以导出或刷新重新打开。');});
@@ -79,11 +82,11 @@ export class WorldView {
     return DIRS[(this.forwardIndex+DIRS.findIndex(d=>d.name===relative))%4].name;
   }
   setAnimation(mode:'full'|'simple'|'system'){this.animationMode=mode;this.reduced=mode==='simple'||mode==='system'&&matchMedia('(prefers-reduced-motion: reduce)').matches;if(this.reduced)this.finish(false);}
-  get presentation(){const positions:Record<string,number[]>={player:this.avatar.root.position.toArray()};for(const [id,g]of this.dynamicGroups)positions[id]=g.position.toArray();return {positions,water:this.water.snapshot,chainVisible:this.chainLinks.visible,guideGridVisible:this.grid.visible,progress:this.motion?this.motion.elapsed/this.motion.duration:1};}
+  get presentation(){const positions:Record<string,number[]>={player:this.avatar.root.position.toArray()};for(const [id,g]of this.dynamicGroups)positions[id]=g.position.toArray();return {positions,water:this.water.snapshot,chainVisible:this.chainLinks.visible,guideGridVisible:this.grid.visible,progress:this.motion?this.motion.elapsed/this.motion.duration:1,flight:this.flight?{progress:this.flight.elapsed/this.flight.duration,courtyards:this.flight.preview?2:1}:null};}
   focus(p:Vec3){if(!this.level)return;const [x,z]=worldCell(this.level,p.x,p.z),delta=new Vector3(x,p.y,z).sub(this.controls.target);this.camera.position.add(delta);this.controls.target.add(delta);this.controls.update();}
   private proto(kind:WorldObject['kind'],join=0){const key=`${kind}:${join}`;if(!this.prototypes.has(key))this.prototypes.set(key,prototype(kind,join));return this.prototypes.get(key)!;}
   private clearStatic(){for(const child of [...this.staticGroup.children]){this.staticGroup.remove(child);child.traverse(node=>{if(node instanceof InstancedMesh)node.dispose();else if(node instanceof Mesh&&node.userData.generatedGeometry)node.geometry.dispose();});}}
-  show(level:LevelDataV2,objects:WorldObject[],solution:WaterSolution,settings:EditorSettings,state?:GameState,events:ActionEvent[]=[],editorTransition=false){
+  show(level:LevelDataV2,objects:WorldObject[],solution:WaterSolution,settings:EditorSettings,state?:GameState,events:ActionEvent[]=[],editorTransition=false,preserveCamera=false){
     const changedLevel=this.level?.id!==level.id, oldFacing=this.avatar.root.rotation.y,previousObjects=this.objects;
     const presented=new Map<string,Vec3>();if(this.level){const capture=(id:string,g:Object3D)=>presented.set(id,{x:g.position.x+(this.level!.width-1)/2,y:g.position.y,z:g.position.z+(this.level!.depth-1)/2});capture('player',this.avatar.root);for(const[id,g]of this.dynamicGroups)capture(id,g);}
     const presentedTilts=new Map<string,number>();for(const [id,model]of this.balanceVisuals)presentedTilts.set(id,model.pivot-model.ends[1].position.y);
@@ -126,7 +129,7 @@ export class WorldView {
     this.water.setSolution(level,viewWater,!this.reduced&&!changedLevel&&(!!state&&events.length>0||editorTransition));this.water.setDepthVisible(settings.depth);
     this.scene.remove(this.grid);this.grid.geometry.dispose();this.grid.material.dispose();this.grid=new GridHelper(Math.max(level.width,level.depth),Math.max(level.width,level.depth),'#547b72','#8ea78e');this.grid.position.y=settings.layer+.012;this.grid.visible=settings.grid&&!state;this.grid.material.transparent=true;this.grid.material.opacity=.48;this.scene.add(this.grid);
     this.buildMarkers(solution);this.falls=[...viewWater.falls,...viewWater.outlets];this.sourceLanding=solution.sourceLanding;
-    if(changedLevel)this.reset();
+    if(changedLevel&&!preserveCamera)this.reset();
     if(events.length&&!this.reduced){const fall=Math.max(0,...events.filter(e=>e.type==='fall').map(e=>e.from.y-e.to.y));this.motion={events,elapsed:0,duration:events.some(e=>e.type==='win')?1.05:fall?Math.min(.85,.3+Math.sqrt(fall)*.09):events.some(e=>e.type==='climb')?.4:events.some(e=>e.type==='push'||e.type==='pull')?.33:.22,previousFacing:oldFacing,splashes:new Set()};if(waterChanged)this.motion.duration=Math.max(.32,this.motion.duration);this.motion.duration*=.5;this.water.duration=this.motion.duration;const phases=new Set(events.filter(e=>!['land','splash','drip','win','turn','balance'].includes(e.type)&&e.id!=='chain').map(e=>e.type==='fall'||e.type==='leave'?1:e.type==='load'?2:e.type==='float'?3:e.type==='slide'?4:0));if(phases.has(4))this.motion.duration*=1+1/phases.size;for(const e of events.filter(e=>e.type==='balance')){const m=this.balanceVisuals.get(e.id);if(m)this.setBalancePose(m,e.fromTilt??0);}this.animate(0);}
     if(editorTransition&&!state&&!this.reduced)this.fadeEditor();
   }
@@ -218,14 +221,59 @@ export class WorldView {
   private ripple(p:Vec3,strength:number){const m=new Mesh(new TorusGeometry(.28,.015,5,28),new MeshBasicMaterial({color:'#f1f9e2',transparent:true,opacity:.8,depthWrite:false,side:DoubleSide}));this.positionObject(m,{...p,y:p.y+.04});m.rotation.x=Math.PI/2;this.animatedEffects.add(m);this.rings.push({mesh:m,time:0,strength});}
   finish(notify=true){if(!this.motion)return;this.motion=null;this.water.finish();for(const o of this.objects.flatMap(o=>o.kind==='boat'&&o.cargo?.[0]?[o,{...o,...o.cargo[0]}]:[o])){const m=this.dynamicGroups.get(o.id);if(m)this.positionObject(m,o);}for(const [id,g]of this.dynamicGroups)if(!this.objects.some(o=>o.id===id||o.cargo?.some(c=>c.id===id))){this.movingGroup.remove(g);this.dynamicGroups.delete(id);}if(this.state){this.positionObject(this.avatar.root,{...this.state.player,direction:this.state.facing});for(const [id,model]of this.balanceVisuals)this.setBalancePose(model,this.state.balanceTilts[id]??0);}this.avatar.body.position.y=0;this.avatar.body.rotation.x=0;this.avatar.body.scale.y=1;this.avatar.head.rotation.x=0;for(const f of this.avatar.feet)f.rotation.x=0;this.chain.visible=this.chainLinks.visible=this.spit.visible=false;if(notify)this.onIdle?.();}
   private fadeEditor(){this.canvas.animate([{opacity:.65},{opacity:1}],{duration:70,easing:'ease-out'});}
-  get busy(){return !!this.motion;}
-  private frame=()=>{this.raf=requestAnimationFrame(this.frame);const now=performance.now(),delta=Math.min(.05,(now-this.last)/1000);this.last=now;if(this.failed||document.hidden)return;if(!this.paused)this.elapsed+=delta*2;this.water.update(delta,this.paused);this.animate(delta);if(!this.motion||!this.motion.events.some(e=>e.id==='chain'))this.drawArmedChain();if(!this.motion&&!this.reduced)this.avatar.body.scale.y=1+Math.sin(this.elapsed*2.2)*.016;
+  private spanFor(level:LevelDataV2,objects:WorldObject[]){const height=Math.max(2,...objects.map(o=>o.kind==='balance'?balancePivot(o)+1:top(o)));return Math.max(9,Math.max(level.width,level.depth)*1.12+height*.55);}
+  private previewCourtyard(next:NextCourtyard,offset:Vector3):{root:Group;water:WaterLayer}{
+    const {level,state,water:solution}=next,root=new Group(),water=new WaterLayer();root.position.copy(offset);
+    try{
+    root.add(stoneArchitecture(level,state.objects.filter(o=>o.kind==='stone')),water.group);
+    water.setSolution(level,solution,false);water.setDepthVisible(next.settings.depth);
+    const objects=state.objects.flatMap(o=>o.kind==='boat'&&o.cargo?.[0]?[o,{...o,...o.cargo[0],cargo:undefined}]:[o]);
+    for(const o of objects){if(o.kind==='stone'||balancePart(o))continue;
+      if(o.kind==='balance'){const model=balanceModel(o.mastHeight??2);const [x,z]=worldCell(level,o.x,o.z);model.root.position.set(x,o.y,z);const axis=dir(o.direction);model.root.rotation.y=Math.atan2(-axis.z,axis.x);this.setBalancePose(model,state.balanceTilts[o.id]??0);root.add(model.root);continue;}
+      const mesh=this.proto(o.kind).clone(true),[x,z]=worldCell(level,o.x,o.z);mesh.position.set(x,o.y,z);mesh.rotation.y=angle(o.direction);root.add(mesh);
+    }
+    const player=this.avatar.root.clone(true),[x,z]=worldCell(level,state.player.x,state.player.z);player.position.set(x,state.player.y,z);player.rotation.y=angle(state.facing);root.add(player);
+    this.scene.add(root);return {root,water};
+    }catch(error){water.dispose();root.traverse(node=>{if(node instanceof Mesh&&node.userData.generatedGeometry)node.geometry.dispose();});throw error;}
+  }
+  /** The next courtyard is scenery until the camera lands; only the caller enables its GameSession. */
+  startFlight(next:NextCourtyard|null,outlet:WaterEdge|null,onComplete:()=>void){
+    this.cancelFlight(false);this.finish(false);if(!this.level){onComplete();return;}
+    if(outlet)this.ripple({x:outlet.x+dir(outlet.direction).x*.48,y:outlet.from,z:outlet.z+dir(outlet.direction).z*.48},1.3);
+    const direction=dir(outlet?.direction??this.state?.facing??'south'),distance=next?(direction.x?this.level.width/2+next.level.width/2:this.level.depth/2+next.level.depth/2)+6:0;
+    const offset=new Vector3(direction.x*distance,0,direction.z*distance),startTarget=this.controls.target.clone(),startOffset=this.camera.position.clone().sub(startTarget);
+    const nextHeight=next?Math.max(2,...next.state.objects.map(o=>top(o))):0,destination=next?offset.clone().add(new Vector3(0,nextHeight*.4,0)):startTarget.clone().add(new Vector3(0,1.3,0));
+    let preview:Group|null=null,previewWater:WaterLayer|null=null,stream:Group|null=null,curve:CatmullRomCurve3|null=null,droplets:InstancedMesh|null=null;
+    if(next&&!this.reduced){try{
+      const result=this.previewCourtyard(next,offset);preview=result.root;previewWater=result.water;preview.visible=false;
+      const [sx,sz]=worldCell(this.level,outlet?.x??this.state?.player.x??0,outlet?.z??this.state?.player.z??0),from=new Vector3(sx+direction.x*.55,(outlet?.from??this.state?.player.y??0)+.14,sz+direction.z*.55);
+      const to=offset.clone().add(new Vector3(-direction.x*(direction.x?next.level.width/2:next.level.depth/2),Math.max(1,next.state.player.y)+.5,-direction.z*(direction.x?next.level.width/2:next.level.depth/2)));
+      curve=new CatmullRomCurve3([from,from.clone().lerp(to,.22).add(new Vector3(0,1.9,0)),from.clone().lerp(to,.55).add(new Vector3(0,3.1,0)),from.clone().lerp(to,.82).add(new Vector3(0,2.1,0)),to]);
+      stream=new Group();for(const [radius,opacity,color] of [[.18,.24,'#8be2e0'],[.057,.82,'#e6fff0']] as const){const mesh=new Mesh(new TubeGeometry(curve,96,radius,6,false),new MeshBasicMaterial({color,transparent:true,opacity,depthWrite:false}));mesh.renderOrder=5;stream.add(mesh);}
+      droplets=new InstancedMesh(new SphereGeometry(.06,6,4),new MeshBasicMaterial({color:'#eefff2',transparent:true,opacity:.87,depthWrite:false}),36);droplets.frustumCulled=false;stream.add(droplets);stream.visible=false;this.scene.add(stream);
+    }catch{if(preview){this.scene.remove(preview);preview.traverse(o=>{if(o instanceof Mesh&&o.userData.generatedGeometry)o.geometry.dispose();});}previewWater?.dispose();stream?.traverse(o=>{if(o instanceof Mesh){o.geometry.dispose();(o.material as MeshBasicMaterial).dispose();}});if(stream)this.scene.remove(stream);preview=previewWater=stream=curve=droplets=null;}}
+    this.controls.enabled=false;this.flight={elapsed:0,duration:this.reduced||next&&!preview?.28:next?3:2.1,startTarget,startOffset,startZoom:this.camera.zoom,destination,offset,nextSpan:next?this.spanFor(next.level,next.state.objects):this.span,preview,previewWater,stream,curve,droplets,onComplete,next:!!next};
+  }
+  private clearFlight(f:Flight){if(f.preview){this.scene.remove(f.preview);f.preview.traverse(node=>{if(node instanceof InstancedMesh)node.dispose();else if(node instanceof Mesh&&node.userData.generatedGeometry)node.geometry.dispose();});}f.previewWater?.dispose();if(f.stream){this.scene.remove(f.stream);f.stream.traverse(node=>{if(node instanceof Mesh){node.geometry.dispose();(node.material as MeshBasicMaterial).dispose();}});}this.controls.enabled=true;}
+  cancelFlight(resetCamera=true){const f=this.flight;if(!f)return;this.flight=null;this.clearFlight(f);if(resetCamera)this.reset();}
+  skipFlight(){if(this.flight)this.completeFlight();}
+  private completeFlight(){const f=this.flight;if(!f)return;this.flight=null;if(f.next){this.camera.position.sub(f.offset);this.controls.target.sub(f.offset);this.span=f.nextSpan;this.camera.zoom=1;this.updateProjection();}this.clearFlight(f);this.controls.update();f.onComplete();}
+  private updateFlight(delta:number){const f=this.flight;if(!f)return;f.elapsed=Math.min(f.duration,f.elapsed+delta);const t=f.elapsed/f.duration,ease=(n:number)=>{const u=Math.max(0,Math.min(1,n));return u*u*(3-2*u);};
+    if(f.preview)f.preview.visible=t>.13;if(f.stream){f.stream.visible=t>.08;for(const mesh of f.stream.children)if(mesh instanceof Mesh&&!(mesh instanceof InstancedMesh))(mesh.material as MeshBasicMaterial).opacity=(mesh.geometry as TubeGeometry).parameters.radius>.1?.24:.82;}
+    if(f.curve&&f.droplets){const m=new Object3D();for(let i=0;i<f.droplets.count;i++){m.position.copy(f.curve.getPointAt((f.elapsed*.55+i/f.droplets.count)%1));m.scale.setScalar(.65+Math.sin(i*7.1+f.elapsed*7)*.24);m.updateMatrix();f.droplets.setMatrixAt(i,m.matrix);}f.droplets.instanceMatrix.needsUpdate=true;}
+    const travel=f.next?ease((t-.25)/.62):ease(t),target=f.startTarget.clone().lerp(f.destination,travel),endOffset=new Vector3(14,25,21).normalize().multiplyScalar(f.startOffset.length()),viewOffset=f.startOffset.clone().lerp(endOffset,f.next?ease((t-.48)/.5):ease(t*.7));
+    if(!f.next)viewOffset.multiplyScalar(1+ease(t)*.28);
+    this.controls.target.copy(target);this.camera.position.copy(target).add(viewOffset);const open=f.next?ease(t/.45):ease(t),close=f.next?ease((t-.58)/.42):0,wide=f.next?Math.min(f.startZoom,.55):Math.min(f.startZoom,.68);this.camera.zoom=f.startZoom+(wide-f.startZoom)*open+((f.next?this.span/f.nextSpan:wide)-wide)*close;this.camera.updateProjectionMatrix();this.controls.update();f.previewWater?.update(delta,this.paused);
+    if(t>=1)this.completeFlight();
+  }
+  get busy(){return !!this.motion||!!this.flight;}
+  private frame=()=>{this.raf=requestAnimationFrame(this.frame);const now=performance.now(),delta=Math.min(.05,(now-this.last)/1000);this.last=now;if(this.failed||document.hidden)return;if(!this.paused)this.elapsed+=delta*2;this.water.update(delta,this.paused);this.animate(delta);this.updateFlight(delta);if(!this.motion||!this.motion.events.some(e=>e.id==='chain'))this.drawArmedChain();if(!this.motion&&!this.reduced)this.avatar.body.scale.y=1+Math.sin(this.elapsed*2.2)*.016;
     for(const r of [...this.rings]){r.time+=delta*2;r.mesh.scale.setScalar(1+r.time*2*r.strength);(r.mesh.material as MeshBasicMaterial).opacity=Math.max(0,.7-r.time);if(r.time>.75){this.animatedEffects.remove(r.mesh);r.mesh.geometry.dispose();(r.mesh.material as MeshBasicMaterial).dispose();this.rings.splice(this.rings.indexOf(r),1);}}
     this.updateSpray();this.renderer.render(this.scene,this.camera);this.frames++;if(now-this.fpsStart>=1000){this.fps=Math.round(this.frames*1000/(now-this.fpsStart));this.frames=0;this.fpsStart=now;this.onStats?.(this.fps,this.renderer.info.render.calls);}};
   private updateSpray(){if(!this.level)return;const m=new Object3D();let index=0;for(const e of this.falls){if(index>=512)break;const d=dir(e.direction),[x,z]=worldCell(this.level,e.x,e.z);for(let i=0;i<3&&index<512;i++){const t=(this.elapsed*1.2+i*.33+e.x*.17+e.z*.21)%1,w=Math.sin(index*13.7)*.35;m.position.set(x+d.x*(.52+t*.18)-d.z*w,e.from-.05-t*t*Math.min(2,e.from-e.to),z+d.z*(.52+t*.18)+d.x*w);m.scale.setScalar(.6+Math.sin(index)*.2);m.updateMatrix();this.spray.setMatrixAt(index++,m.matrix);}}this.spray.count=index;this.spray.instanceMatrix.needsUpdate=true;this.spray.visible=index>0&&!this.reduced;
     const targets=this.falls.filter(e=>e.kind==='fall').map(e=>({x:e.x+dir(e.direction).x*.65,y:e.to,z:e.z+dir(e.direction).z*.65}));if(this.sourceLanding)targets.push(this.sourceLanding);let ring=0;for(const p of targets.slice(0,128)){for(let i=0;i<2;i++){const [x,z]=worldCell(this.level,p.x,p.z),t=(this.elapsed*.7+i*.5)%1;m.position.set(x,p.y+.04,z);m.rotation.set(Math.PI/2,0,0);m.scale.setScalar(.4+t*2);m.updateMatrix();this.landingRings.setMatrixAt(ring++,m.matrix);}}this.landingRings.count=ring;this.landingRings.instanceMatrix.needsUpdate=true;
   }
-  dispose(){cancelAnimationFrame(this.raf);this.observer.disconnect();this.controls.dispose();this.water.dispose();this.clearStatic();this.areaGhost.dispose();this.areaGhost.geometry.dispose();this.areaOutline.geometry.dispose();this.renderer.dispose();}
+  dispose(){cancelAnimationFrame(this.raf);this.cancelFlight(false);this.observer.disconnect();this.controls.dispose();this.water.dispose();this.clearStatic();this.areaGhost.dispose();this.areaGhost.geometry.dispose();this.areaOutline.geometry.dispose();this.renderer.dispose();}
 }
 
 
